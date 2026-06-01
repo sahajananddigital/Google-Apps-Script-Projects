@@ -1,0 +1,12 @@
+{
+  "name": "gurukul-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w packages/inventory-management-system",
+    "build": "npm run build -w packages/inventory-management-system",
+    "deploy": "npm run deploy -w packages/inventory-management-system"
+  }
+}
