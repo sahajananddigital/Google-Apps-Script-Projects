@@ -14,8 +14,20 @@ const DonationForm = () => {
   const [presetTotal, setPresetTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [syncingCache, setSyncingCache] = useState(false);
 
   const total = presetTotal + (parseInt(formData.customAmount) || 0);
+
+  const handleSyncClick = async () => {
+    setSyncingCache(true);
+    try {
+      await syncDonorsCache();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSyncingCache(false);
+    }
+  };
 
   // Sync donors list to localstorage cache on mount
   useEffect(() => {
@@ -153,6 +165,10 @@ Shree Swaminarayan Gurukul
     });
 
     callGAS('addDonation', donationData)
+      .then(() => {
+        // Sync local cache from sheet to keep in sync
+        syncDonorsCache();
+      })
       .catch(console.error)
       .finally(() => {
         setLoading(false);
@@ -162,13 +178,28 @@ Shree Swaminarayan Gurukul
 
   return (
     <div className="p-6">
-      <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-        <div className="bg-green-100 p-2 rounded-lg text-green-600">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+      <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-green-100 p-2 rounded-lg text-green-600">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-slate-800">Donation Receipt</h2>
         </div>
-        <h2 className="text-xl font-bold text-slate-800">Donation Receipt</h2>
+
+        <button
+          type="button"
+          onClick={handleSyncClick}
+          disabled={syncingCache}
+          className={`flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-semibold transition-all active:scale-95 ${syncingCache ? 'opacity-50 cursor-not-allowed' : ''}`}
+          title="Refresh Donors Database"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className={`h-4.5 w-4.5 ${syncingCache ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3 3 3m-3-3v12" />
+          </svg>
+          {syncingCache ? 'Syncing...' : 'Sync Donors'}
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
