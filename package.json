@@ -5,8 +5,14 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w packages/inventory-management-system",
-    "build": "npm run build -w packages/inventory-management-system",
-    "deploy": "npm run deploy -w packages/inventory-management-system"
+    "inventory:dev": "npm run dev -w packages/inventory-management-system",
+    "inventory:build": "npm run build -w packages/inventory-management-system",
+    "inventory:deploy": "npm run deploy -w packages/inventory-management-system",
+    "accounts:dev": "npm run web:dev -w packages/gurukul-account-manager",
+    "accounts:build": "npm run build -w packages/gurukul-account-manager",
+    "accounts:deploy": "npm run deploy -w packages/gurukul-account-manager",
+    "dev": "npm run inventory:dev",
+    "build": "npm run inventory:build",
+    "deploy": "npm run inventory:deploy"
   }
 }

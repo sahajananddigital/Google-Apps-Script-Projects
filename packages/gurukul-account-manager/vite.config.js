@@ -28,7 +28,7 @@ const viteExposeGasFunctions = () => ({
 
 const targets = [
   {
-    src: 'node_modules/apps-script-oauth2/dist/OAuth2.gs',
+    src: '../../node_modules/apps-script-oauth2/dist/OAuth2.gs',
     dest: '.',
     rename: (fileName) => `${fileName.toLowerCase()}.js`,
   },
