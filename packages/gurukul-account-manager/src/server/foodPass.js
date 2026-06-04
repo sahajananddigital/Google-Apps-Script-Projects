@@ -1,3 +1,5 @@
+import { getSettingFromSheet } from './settings.js';
+
 export function addFoodPass(data) {
   const sheetName = "FoodPass";
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -21,7 +23,7 @@ export function addFoodPass(data) {
 }
 
 export function getFoodPassPrice() {
-  const price = PropertiesService.getScriptProperties().getProperty('FOOD_PASS_PRICE');
-  return price ? parseInt(price, 10) : 100;
+  const price = getSettingFromSheet('FOOD_PASS_PRICE', 100);
+  return parseInt(price, 10);
 }
 
