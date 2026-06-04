@@ -11,6 +11,9 @@
     "accounts:dev": "npm run web:dev -w packages/gurukul-account-manager",
     "accounts:build": "npm run build -w packages/gurukul-account-manager",
     "accounts:deploy": "npm run deploy -w packages/gurukul-account-manager",
+    "tracker:dev": "npm run dev -w packages/harismruti-path-tracker",
+    "tracker:build": "npm run build -w packages/harismruti-path-tracker",
+    "tracker:deploy": "npm run deploy -w packages/harismruti-path-tracker",
     "dev": "npm run inventory:dev",
     "build": "npm run inventory:build",
     "deploy": "npm run inventory:deploy"
