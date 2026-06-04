@@ -3,8 +3,8 @@ import { makeQueryString } from './server/http.js';
 import { doGet } from './server/webapp.js';
 import { getVouchers, addVoucher } from './server/voucher.js'
 import { addFoodPass, getFoodPassPrice } from './server/foodPass.js'
-import { addDonation, getDonorDetails } from './server/donation.js'
+import { addDonation, getDonorDetails, getAllDonors } from './server/donation.js'
 import { addGatePass } from './server/gatePass.js';
 import { getDailyReport } from './server/report.js';
 
-export { doGet, getGmailAliases, makeQueryString, getVouchers, addVoucher, addFoodPass, getFoodPassPrice, addDonation, getDonorDetails, addGatePass, getDailyReport };
+export { doGet, getGmailAliases, makeQueryString, getVouchers, addVoucher, addFoodPass, getFoodPassPrice, addDonation, getDonorDetails, getAllDonors, addGatePass, getDailyReport };

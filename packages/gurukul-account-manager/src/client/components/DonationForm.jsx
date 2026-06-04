@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { callGAS } from '../GAS';
+import { getDonorFromCache, syncDonorsCache, addDonorToCache } from '../utils/donorCache';
 
 const DonationForm = () => {
   const [formData, setFormData] = useState({
@@ -16,10 +17,28 @@ const DonationForm = () => {
 
   const total = presetTotal + (parseInt(formData.customAmount) || 0);
 
+  // Sync donors list to localstorage cache on mount
+  useEffect(() => {
+    syncDonorsCache();
+  }, []);
+
   // Autofill effect when phone number reaches 10 digits
   useEffect(() => {
     const fetchDetails = async () => {
       if (formData.phone.length === 10) {
+        // 1. Try local cache first for zero latency
+        const cachedDetails = getDonorFromCache(formData.phone);
+        if (cachedDetails && cachedDetails.name) {
+          setFormData(prev => ({
+            ...prev,
+            name: cachedDetails.name,
+            ledger: cachedDetails.ledger || prev.ledger,
+            purpose: cachedDetails.purpose || prev.purpose
+          }));
+          return;
+        }
+
+        // 2. Fallback to GAS if not in cache
         setIsFetching(true);
         try {
           const details = await callGAS('getDonorDetails', formData.phone);
@@ -30,6 +49,8 @@ const DonationForm = () => {
               ledger: details.ledger || prev.ledger,
               purpose: details.purpose || prev.purpose
             }));
+            // Update local cache
+            addDonorToCache(details);
           }
         } catch (error) {
           console.error("Autofill error:", error);
@@ -122,6 +143,14 @@ Shree Swaminarayan Gurukul
       amount: total,
       tempId,
     };
+
+    // Save/update in local cache immediately
+    addDonorToCache({
+      phone: formData.phone,
+      name: formData.name,
+      ledger: formData.ledger,
+      purpose: formData.purpose
+    });
 
     callGAS('addDonation', donationData)
       .catch(console.error)

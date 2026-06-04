@@ -1,30 +1,106 @@
 export function getDonorDetails(phone) {
-  const sheetName = "Donations";
+  const sheetName = "Donors";
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(sheetName);
+  let sheet = ss.getSheetByName(sheetName);
 
-  if (!sheet) return null;
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(["Phone", "Name", "Ledger", "Purpose"]);
+    sheet.getRange(1, 1, 1, 4).setFontWeight("bold");
+    return null;
+  }
 
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const phoneIdx = headers.indexOf("Phone");
   const nameIdx = headers.indexOf("Name");
   const ledgerIdx = headers.indexOf("Ledger");
-  const noteIdx = headers.indexOf("Note");
+  const purposeIdx = headers.indexOf("Purpose");
 
   if (phoneIdx === -1) return null;
 
-  for (let i = data.length - 1; i > 0; i--) {
-    if (String(data[i][phoneIdx]).includes(phone)) {
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][phoneIdx]).trim() === String(phone).trim()) {
       return {
+        phone: String(data[i][phoneIdx]).trim(),
         name: data[i][nameIdx] || "",
         ledger: data[i][ledgerIdx] || "",
-        purpose: noteIdx !== -1 ? data[i][noteIdx] || "" : ""
+        purpose: purposeIdx !== -1 ? data[i][purposeIdx] || "" : ""
       };
     }
   }
 
   return null;
+}
+
+export function getAllDonors() {
+  const sheetName = "Donors";
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(["Phone", "Name", "Ledger", "Purpose"]);
+    sheet.getRange(1, 1, 1, 4).setFontWeight("bold");
+    return [];
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const phoneIdx = headers.indexOf("Phone");
+  const nameIdx = headers.indexOf("Name");
+  const ledgerIdx = headers.indexOf("Ledger");
+  const purposeIdx = headers.indexOf("Purpose");
+
+  if (phoneIdx === -1) return [];
+
+  const donors = [];
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][phoneIdx]) {
+      donors.push({
+        phone: String(data[i][phoneIdx]).trim(),
+        name: data[i][nameIdx] || "",
+        ledger: data[i][ledgerIdx] || "",
+        purpose: purposeIdx !== -1 ? data[i][purposeIdx] || "" : ""
+      });
+    }
+  }
+  return donors;
+}
+
+function upsertDonor(phone, name, ledger, purpose) {
+  const sheetName = "Donors";
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    sheet.appendRow(["Phone", "Name", "Ledger", "Purpose"]);
+    sheet.getRange(1, 1, 1, 4).setFontWeight("bold");
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const phoneIdx = headers.indexOf("Phone");
+  const nameIdx = headers.indexOf("Name");
+  const ledgerIdx = headers.indexOf("Ledger");
+  const purposeIdx = headers.indexOf("Purpose");
+
+  let foundRowIndex = -1;
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][phoneIdx]).trim() === String(phone).trim()) {
+      foundRowIndex = i + 1; // 1-indexed row number
+      break;
+    }
+  }
+
+  if (foundRowIndex === -1) {
+    sheet.appendRow([String(phone).trim(), name, ledger, purpose]);
+  } else {
+    if (nameIdx !== -1) sheet.getRange(foundRowIndex, nameIdx + 1).setValue(name);
+    if (ledgerIdx !== -1) sheet.getRange(foundRowIndex, ledgerIdx + 1).setValue(ledger);
+    if (purposeIdx !== -1) sheet.getRange(foundRowIndex, purposeIdx + 1).setValue(purpose);
+  }
 }
 
 export function addDonation(data) {
@@ -36,6 +112,9 @@ export function addDonation(data) {
     sheet = ss.insertSheet(sheetName);
     sheet.appendRow(["Date", "Name", "Ledger", "Note", "Phone", "Amount", "SMS_Status", "TxnID"]);
   }
+
+  // Ensure donor details are updated or created in the Donors sheet
+  upsertDonor(data.phone, data.name, data.ledger, data.purpose || data.note || "");
 
   const username = PropertiesService.getScriptProperties().getProperty('username');
   const password = PropertiesService.getScriptProperties().getProperty('password');
