@@ -19,3 +19,9 @@ export function addFoodPass(data) {
 
   return { success: true, lastRow: sheet.getLastRow()};
 }
+
+export function getFoodPassPrice() {
+  const price = PropertiesService.getScriptProperties().getProperty('FOOD_PASS_PRICE');
+  return price ? parseInt(price, 10) : 100;
+}
+

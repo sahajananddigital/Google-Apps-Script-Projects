@@ -4,7 +4,22 @@ import { callGAS } from '../GAS';
 const FoodPassForm = () => {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
-  const foodRate = 90;
+  const [foodRate, setFoodRate] = useState(100);
+
+  useEffect(() => {
+    callGAS('getFoodPassPrice')
+      .then((rate) => {
+        if (rate && typeof rate === 'number') {
+          setFoodRate(rate);
+        } else if (rate && typeof rate === 'string') {
+          const parsed = parseInt(rate, 10);
+          if (!isNaN(parsed)) setFoodRate(parsed);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch food pass rate:', err);
+      });
+  }, []);
 
   const displayQuantity = quantity === "" ? "" : parseInt(quantity) || 0;
   const totalAmount = (displayQuantity || 0) * foodRate;
