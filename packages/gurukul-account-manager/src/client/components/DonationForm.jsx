@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { callGAS } from '../GAS';
-import { getDonorFromCache, syncDonorsCache, addDonorToCache } from '../utils/donorCache';
+import { getDonorFromCache, syncDonorsCache, addDonorToCache, getCachedDonors } from '../utils/donorCache';
 
 const DonationForm = () => {
   const [formData, setFormData] = useState({
@@ -14,8 +14,34 @@ const DonationForm = () => {
   const [presetTotal, setPresetTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [phoneSuggestions, setPhoneSuggestions] = useState([]);
 
   const total = presetTotal + (parseInt(formData.customAmount) || 0);
+
+  // Suggest matching donors based on phone input prefix/substring
+  useEffect(() => {
+    const query = formData.phone.trim();
+    if (query.length >= 3) {
+      const cached = getCachedDonors();
+      const matches = Object.values(cached).filter(donor => 
+        donor.phone.includes(query)
+      ).slice(0, 5); // Limit to top 5 matches
+      setPhoneSuggestions(matches);
+    } else {
+      setPhoneSuggestions([]);
+    }
+  }, [formData.phone]);
+
+  const handleSelectSuggestion = (donor) => {
+    setFormData(prev => ({
+      ...prev,
+      phone: donor.phone,
+      name: donor.name,
+      ledger: donor.ledger || prev.ledger,
+      purpose: donor.purpose || prev.purpose
+    }));
+    setPhoneSuggestions([]);
+  };
 
   // Sync donors list to localstorage cache on mount
   useEffect(() => {
@@ -196,12 +222,28 @@ Shree Swaminarayan Gurukul
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              onBlur={() => setTimeout(() => setPhoneSuggestions([]), 200)}
               minLength="10"
               maxLength="12"
               required
               placeholder="Mobile No."
               className={`w-full rounded-xl border-slate-200 p-2 border text-sm ${isFetching ? 'border-blue-300 ring-1 ring-blue-100' : ''}`}
             />
+            {phoneSuggestions.length > 0 && (
+              <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-slate-50">
+                {phoneSuggestions.map((donor) => (
+                  <button
+                    key={donor.phone}
+                    type="button"
+                    onClick={() => handleSelectSuggestion(donor)}
+                    className="w-full text-left px-4 py-2.5 hover:bg-blue-50 transition-colors flex flex-col gap-0.5 group"
+                  >
+                    <span className="text-sm font-bold text-slate-800 group-hover:text-blue-900">{donor.name}</span>
+                    <span className="text-xs text-slate-500 font-mono">{donor.phone} {donor.ledger ? `(${donor.ledger})` : ''}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
