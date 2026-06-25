@@ -14,6 +14,9 @@
     "tracker:dev": "npm run dev -w packages/harismruti-path-tracker",
     "tracker:build": "npm run build -w packages/harismruti-path-tracker",
     "tracker:deploy": "npm run deploy -w packages/harismruti-path-tracker",
+    "todo:dev": "npm run dev -w packages/todo-reminder",
+    "todo:build": "npm run build -w packages/todo-reminder",
+    "todo:deploy": "npm run deploy -w packages/todo-reminder",
     "dev": "npm run inventory:dev",
     "build": "npm run inventory:build",
     "deploy": "npm run inventory:deploy"
