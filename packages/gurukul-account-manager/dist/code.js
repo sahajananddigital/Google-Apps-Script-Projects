@@ -1,6 +1,6 @@
-var app = (function (l) {
+var app = (function (F) {
   "use strict";
-  const _ = () => {
+  const q = () => {
       try {
         const { sendAs: e = [] } = Gmail.Users.Settings.SendAs.list("me");
         if (e.length) return e.map((t) => t.sendAsEmail);
@@ -10,9 +10,9 @@ var app = (function (l) {
       return [Session.getActiveUser().getEmail()];
     },
     D = "%[a-f0-9]{2}",
-    R = new RegExp("(" + D + ")|([^%]+?)", "gi"),
-    C = new RegExp("(" + D + ")+", "gi");
-  function N(e, t) {
+    C = new RegExp("(" + D + ")|([^%]+?)", "gi"),
+    E = new RegExp("(" + D + ")+", "gi");
+  function b(e, t) {
     try {
       return [decodeURIComponent(e.join(""))];
     } catch {}
@@ -20,21 +20,21 @@ var app = (function (l) {
     t = t || 1;
     const r = e.slice(0, t),
       n = e.slice(t);
-    return Array.prototype.concat.call([], N(r), N(n));
+    return Array.prototype.concat.call([], b(r), b(n));
   }
   function G(e) {
     try {
       return decodeURIComponent(e);
     } catch {
-      let t = e.match(R) || [];
+      let t = e.match(C) || [];
       for (let r = 1; r < t.length; r++)
-        ((e = N(t, r).join("")), (t = e.match(R) || []));
+        ((e = b(t, r).join("")), (t = e.match(C) || []));
       return e;
     }
   }
-  function q(e) {
+  function Q(e) {
     const t = { "%FE%FF": "��", "%FF%FE": "��" };
-    let r = C.exec(e);
+    let r = E.exec(e);
     for (; r; ) {
       try {
         t[r[0]] = decodeURIComponent(r[0]);
@@ -42,7 +42,7 @@ var app = (function (l) {
         const s = G(r[0]);
         s !== r[0] && (t[r[0]] = s);
       }
-      r = C.exec(e);
+      r = E.exec(e);
     }
     t["%C2"] = "�";
     const n = Object.keys(t);
@@ -57,10 +57,10 @@ var app = (function (l) {
     try {
       return decodeURIComponent(e);
     } catch {
-      return q(e);
+      return Q(e);
     }
   }
-  function Q(e, t) {
+  function J(e, t) {
     const r = {};
     if (Array.isArray(t))
       for (const n of t) {
@@ -77,21 +77,21 @@ var app = (function (l) {
       }
     return r;
   }
-  function E(e, t) {
+  function T(e, t) {
     if (!(typeof e == "string" && typeof t == "string"))
       throw new TypeError("Expected the arguments to be of type `string`");
     if (e === "" || t === "") return [];
     const r = e.indexOf(t);
     return r === -1 ? [] : [e.slice(0, r), e.slice(r + t.length)];
   }
-  const J = (e) => e == null,
-    W = (e) =>
+  const W = (e) => e == null,
+    K = (e) =>
       encodeURIComponent(e).replaceAll(
         /[!'()*]/g,
         (t) => `%${t.charCodeAt(0).toString(16).toUpperCase()}`,
       ),
-    b = Symbol("encodeFragmentIdentifier");
-  function K(e) {
+    x = Symbol("encodeFragmentIdentifier");
+  function z(e) {
     switch (e.arrayFormat) {
       case "index":
         return (t) => (r, n) => {
@@ -147,7 +147,7 @@ var app = (function (l) {
               : (r.push([p(t, e), "=", p(n, e)].join("")), r);
     }
   }
-  function z(e) {
+  function X(e) {
     let t;
     switch (e.arrayFormat) {
       case "index":
@@ -195,20 +195,20 @@ var app = (function (l) {
         return (r, n, s) => {
           const o =
             typeof n == "string" && n.includes(e.arrayFormatSeparator)
-              ? n.split(e.arrayFormatSeparator).map((a) => A(a, e))
+              ? n.split(e.arrayFormatSeparator).map((a) => P(a, e))
               : n === null
                 ? n
-                : A(n, e);
+                : P(n, e);
           s[r] = o;
         };
       case "bracket-separator":
         return (r, n, s) => {
           const i = /(\[])$/.test(r);
           if (((r = r.replace(/\[]$/, "")), !i)) {
-            s[r] = n && A(n, e);
+            s[r] = n && P(n, e);
             return;
           }
-          const o = n === null ? [] : A(n, e).split(e.arrayFormatSeparator);
+          const o = n === null ? [] : P(n, e).split(e.arrayFormatSeparator);
           if (s[r] === void 0) {
             s[r] = o;
             return;
@@ -237,9 +237,9 @@ var app = (function (l) {
       );
   }
   function p(e, t) {
-    return t.encode ? (t.strict ? W(e) : encodeURIComponent(e)) : e;
+    return t.encode ? (t.strict ? K(e) : encodeURIComponent(e)) : e;
   }
-  function A(e, t) {
+  function P(e, t) {
     return t.decode ? H(e) : e;
   }
   function L(e) {
@@ -251,20 +251,20 @@ var app = (function (l) {
             .map((t) => e[t])
         : e;
   }
-  function T(e) {
+  function U(e) {
     const t = e.indexOf("#");
     return (t !== -1 && (e = e.slice(0, t)), e);
   }
-  function X(e) {
+  function Z(e) {
     let t = "";
     const r = e.indexOf("#");
     return (r !== -1 && (t = e.slice(r)), t);
   }
-  function U(e) {
+  function $(e) {
     const t = e.indexOf("?");
     return t === -1 ? e : e.slice(0, t);
   }
-  function $(e, t, r) {
+  function V(e, t, r) {
     return r === "string" && typeof e == "string"
       ? e
       : typeof r == "function" && typeof e == "string"
@@ -306,8 +306,8 @@ var app = (function (l) {
                         ? Number(e)
                         : e;
   }
-  function x(e) {
-    e = T(e);
+  function I(e) {
+    e = U(e);
     const t = e.indexOf("?");
     return t === -1 ? "" : e.slice(t + 1);
   }
@@ -323,7 +323,7 @@ var app = (function (l) {
       ...t,
     }),
       j(t.arrayFormatSeparator));
-    const r = z(t),
+    const r = X(t),
       n = Object.create(null);
     if (typeof e != "string" || ((e = e.trim().replace(/^[?#&]/, "")), !e))
       return n;
@@ -337,29 +337,29 @@ var app = (function (l) {
       const o = e.slice(s, i);
       s = i + 1;
       const a = t.decode ? o.replaceAll("+", " ") : o;
-      let [f, u] = E(a, "=");
+      let [f, g] = T(a, "=");
       (f === void 0 && (f = a),
-        (u =
-          u === void 0
+        (g =
+          g === void 0
             ? null
             : ["comma", "separator", "bracket-separator"].includes(
                   t.arrayFormat,
                 )
-              ? u
-              : A(u, t)),
-        r(A(f, t), u, n));
+              ? g
+              : P(g, t)),
+        r(P(f, t), g, n));
     }
     for (const [i, o] of Object.entries(n))
       if (typeof o == "object" && o !== null && t.types[i] !== "string")
         for (const [a, f] of Object.entries(o)) {
-          const u = t.types[i],
-            c = typeof u == "function" ? u : u ? u.replace("[]", "") : void 0;
-          o[a] = $(f, t, c);
+          const g = t.types[i],
+            c = typeof g == "function" ? g : g ? g.replace("[]", "") : void 0;
+          o[a] = V(f, t, c);
         }
       else
         typeof o == "object" && o !== null && t.types[i] === "string"
           ? (n[i] = Object.values(o).join(t.arrayFormatSeparator))
-          : (n[i] = $(o, t, t.types[i]));
+          : (n[i] = V(o, t, t.types[i]));
     return t.sort === !1
       ? n
       : (t.sort === !0
@@ -373,7 +373,7 @@ var app = (function (l) {
           );
         }, Object.create(null));
   }
-  function V(e, t) {
+  function M(e, t) {
     if (!e) return "";
     ((t = {
       encode: !0,
@@ -384,8 +384,8 @@ var app = (function (l) {
     }),
       j(t.arrayFormatSeparator));
     const r = (o) =>
-        (t.skipNull && J(e[o])) || (t.skipEmptyString && e[o] === ""),
-      n = K(t),
+        (t.skipNull && W(e[o])) || (t.skipEmptyString && e[o] === ""),
+      n = z(t),
       s = {};
     for (const [o, a] of Object.entries(e)) r(o) || (s[o] = a);
     const i = Object.keys(s);
@@ -406,15 +406,15 @@ var app = (function (l) {
             let f = a;
             t.replacer &&
               (f = a
-                .map((g, h) => t.replacer(`${o}[${h}]`, g))
-                .filter((g) => g !== void 0));
-            const u = f.reduce(n(o), []),
+                .map((m, l) => t.replacer(`${o}[${l}]`, m))
+                .filter((m) => m !== void 0));
+            const g = f.reduce(n(o), []),
               c = ["comma", "separator", "bracket-separator"].includes(
                 t.arrayFormat,
               )
                 ? t.arrayFormatSeparator
                 : "&";
-            return u.join(c);
+            return g.join(c);
           }
           return p(o, t) + "=" + p(a, t);
         })
@@ -422,79 +422,79 @@ var app = (function (l) {
         .join("&")
     );
   }
-  function M(e, t) {
+  function B(e, t) {
     t = { decode: !0, ...t };
-    let [r, n] = E(e, "#");
+    let [r, n] = T(e, "#");
     return (
       r === void 0 && (r = e),
       {
-        url: U(r ?? ""),
-        query: w(x(e), t),
+        url: $(r ?? ""),
+        query: w(I(e), t),
         ...(t && t.parseFragmentIdentifier && n
-          ? { fragmentIdentifier: A(n, t) }
+          ? { fragmentIdentifier: P(n, t) }
           : {}),
       }
     );
   }
-  function B(e, t) {
-    t = { encode: !0, strict: !0, [b]: !0, ...t };
-    const r = U(T(e.url)) || "",
-      n = x(e.url),
+  function _(e, t) {
+    t = { encode: !0, strict: !0, [x]: !0, ...t };
+    const r = $(U(e.url)) || "",
+      n = I(e.url),
       s = { ...w(n, { sort: !1, ...t }), ...e.query };
-    let i = V(s, t);
+    let i = M(s, t);
     i && (i = `?${i}`);
-    let o = X(e.url);
+    let o = Z(e.url);
     if (typeof e.fragmentIdentifier == "string") {
       const a = new URL(r);
       ((a.hash = e.fragmentIdentifier),
-        (o = t[b] ? a.hash : `#${e.fragmentIdentifier}`));
+        (o = t[x] ? a.hash : `#${e.fragmentIdentifier}`));
     }
     return `${r}${i}${o}`;
   }
-  function I(e, t, r) {
-    r = { parseFragmentIdentifier: !0, [b]: !1, ...r };
-    const { url: n, query: s, fragmentIdentifier: i } = M(e, r);
-    return B({ url: n, query: Q(s, t), fragmentIdentifier: i }, r);
+  function R(e, t, r) {
+    r = { parseFragmentIdentifier: !0, [x]: !1, ...r };
+    const { url: n, query: s, fragmentIdentifier: i } = B(e, r);
+    return _({ url: n, query: J(s, t), fragmentIdentifier: i }, r);
   }
-  function Z(e, t, r) {
+  function Y(e, t, r) {
     if (Array.isArray(t)) {
       const n = new Set(t);
-      return I(e, (s) => !n.has(s), r);
+      return R(e, (s) => !n.has(s), r);
     }
-    return I(e, (n, s) => !t(n, s), r);
+    return R(e, (n, s) => !t(n, s), r);
   }
-  const Y = Object.freeze(
+  const k = Object.freeze(
       Object.defineProperty(
         {
           __proto__: null,
-          exclude: Z,
-          extract: x,
+          exclude: Y,
+          extract: I,
           parse: w,
-          parseUrl: M,
-          pick: I,
-          stringify: V,
-          stringifyUrl: B,
+          parseUrl: B,
+          pick: R,
+          stringify: M,
+          stringifyUrl: _,
         },
         Symbol.toStringTag,
         { value: "Module" },
       ),
     ),
-    k = () => {
+    v = () => {
       const e = "https://example.com",
         t = {
           name: "amit",
           location: "india",
           interests: ["workspace", "apps script"],
         },
-        r = Y.stringify(t, { sort: !1, arrayFormat: "bracket" }),
+        r = k.stringify(t, { sort: !1, arrayFormat: "bracket" }),
         n = `${e}?${r}`;
       Logger.log(`URL: ${n}`);
     },
-    v = () =>
+    ee = () =>
       HtmlService.createHtmlOutputFromFile("index.html")
         .setTitle("Google Apps Script")
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
-  function ee() {
+  function te() {
     const t = SpreadsheetApp.getActiveSpreadsheet()
         .getSheetByName("Vouchers")
         .getDataRange()
@@ -507,8 +507,8 @@ var app = (function (l) {
         .map((o, a) => {
           const f = {};
           return (
-            r.forEach((u, c) => {
-              f[u] = o[c] !== void 0 && o[c] !== null ? o[c] : "";
+            r.forEach((g, c) => {
+              f[g] = o[c] !== void 0 && o[c] !== null ? o[c] : "";
             }),
             (f.ID = n.length - a),
             f
@@ -516,7 +516,7 @@ var app = (function (l) {
         });
     return JSON.stringify(i);
   }
-  function te(e) {
+  function re(e) {
     const t = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Vouchers"),
       r = new Date().getTime();
     return (
@@ -534,7 +534,7 @@ var app = (function (l) {
       { success: !0, id: r }
     );
   }
-  function re(e, t) {
+  function ne(e, t) {
     try {
       const r = "Settings",
         n = SpreadsheetApp.getActiveSpreadsheet();
@@ -559,7 +559,7 @@ var app = (function (l) {
       return (console.error("Error reading setting from sheet:", r), t);
     }
   }
-  function ne(e) {
+  function se(e) {
     const t = "FoodPass",
       r = SpreadsheetApp.getActiveSpreadsheet();
     let n = r.getSheetByName(t);
@@ -585,11 +585,37 @@ var app = (function (l) {
       { success: !0, lastRow: n.getLastRow() }
     );
   }
-  function se() {
-    const e = re("FOOD_PASS_PRICE", 100);
+  function oe() {
+    const e = ne("FOOD_PASS_PRICE", 100);
     return parseInt(e, 10);
   }
-  function oe(e) {
+  function ie(e) {
+    const t = "FreePass",
+      r = SpreadsheetApp.getActiveSpreadsheet();
+    let n = r.getSheetByName(t);
+    return (
+      n ||
+        ((n = r.insertSheet(t)),
+        n.appendRow([
+          "Date",
+          "Time",
+          "Type",
+          "Quantity",
+          "TotalAmount",
+          "TxnID",
+        ])),
+      n.appendRow([
+        e.date,
+        e.time,
+        e.freePassTime,
+        e.quantity,
+        0,
+        e.tempId || "",
+      ]),
+      { success: !0, lastRow: n.getLastRow() }
+    );
+  }
+  function ae(e) {
     const t = "Donors",
       r = SpreadsheetApp.getActiveSpreadsheet();
     let n = r.getSheetByName(t);
@@ -605,7 +631,7 @@ var app = (function (l) {
       o = i.indexOf("Phone"),
       a = i.indexOf("Name"),
       f = i.indexOf("Ledger"),
-      u = i.indexOf("Purpose");
+      g = i.indexOf("Purpose");
     if (o === -1) return null;
     for (let c = 1; c < s.length; c++)
       if (String(s[c][o]).trim() === String(e).trim())
@@ -613,11 +639,11 @@ var app = (function (l) {
           phone: String(s[c][o]).trim(),
           name: s[c][a] || "",
           ledger: s[c][f] || "",
-          purpose: (u !== -1 && s[c][u]) || "",
+          purpose: (g !== -1 && s[c][g]) || "",
         };
     return null;
   }
-  function ie() {
+  function ce() {
     const e = "Donors",
       t = SpreadsheetApp.getActiveSpreadsheet();
     let r = t.getSheetByName(e);
@@ -635,18 +661,18 @@ var app = (function (l) {
       a = s.indexOf("Ledger"),
       f = s.indexOf("Purpose");
     if (i === -1) return [];
-    const u = [];
+    const g = [];
     for (let c = 1; c < n.length; c++)
       n[c][i] &&
-        u.push({
+        g.push({
           phone: String(n[c][i]).trim(),
           name: n[c][o] || "",
           ledger: n[c][a] || "",
           purpose: (f !== -1 && n[c][f]) || "",
         });
-    return u;
+    return g;
   }
-  function ae(e, t, r, n) {
+  function fe(e, t, r, n) {
     const s = "Donors",
       i = SpreadsheetApp.getActiveSpreadsheet();
     let o = i.getSheetByName(s);
@@ -656,23 +682,23 @@ var app = (function (l) {
       o.getRange(1, 1, 1, 4).setFontWeight("bold"));
     const a = o.getDataRange().getValues(),
       f = a[0],
-      u = f.indexOf("Phone"),
+      g = f.indexOf("Phone"),
       c = f.indexOf("Name"),
-      g = f.indexOf("Ledger"),
-      h = f.indexOf("Purpose");
-    let m = -1;
-    for (let d = 1; d < a.length; d++)
-      if (String(a[d][u]).trim() === String(e).trim()) {
-        m = d + 1;
+      m = f.indexOf("Ledger"),
+      l = f.indexOf("Purpose");
+    let h = -1;
+    for (let u = 1; u < a.length; u++)
+      if (String(a[u][g]).trim() === String(e).trim()) {
+        h = u + 1;
         break;
       }
-    m === -1
+    h === -1
       ? o.appendRow([String(e).trim(), t, r, n])
-      : (c !== -1 && o.getRange(m, c + 1).setValue(t),
-        g !== -1 && o.getRange(m, g + 1).setValue(r),
-        h !== -1 && o.getRange(m, h + 1).setValue(n));
+      : (c !== -1 && o.getRange(h, c + 1).setValue(t),
+        m !== -1 && o.getRange(h, m + 1).setValue(r),
+        l !== -1 && o.getRange(h, l + 1).setValue(n));
   }
-  function ce(e) {
+  function de(e) {
     const t = "Donations",
       r = SpreadsheetApp.getActiveSpreadsheet();
     let n = r.getSheetByName(t);
@@ -688,7 +714,7 @@ var app = (function (l) {
         "SMS_Status",
         "TxnID",
       ])),
-      ae(e.phone, e.name, e.ledger, e.purpose || e.note || ""));
+      fe(e.phone, e.name, e.ledger, e.purpose || e.note || ""));
     const s = PropertiesService.getScriptProperties().getProperty("username"),
       i = PropertiesService.getScriptProperties().getProperty("password"),
       o =
@@ -699,12 +725,12 @@ var app = (function (l) {
       const f = {
           Authorization: "Basic " + Utilities.base64Encode(s + ":" + i),
         },
-        u = [`+91${e.phone}`];
-      o && u.push(`+91${o}`);
+        g = [`+91${e.phone}`];
+      o && g.push(`+91${o}`);
       const c = {
         message: `જય સ્વામિનારાયણ ${e.name}, આપ શ્રી ના તરફથી આજે ${e.date} તારીખે રૂપિયા ${e.amount} નો સહયોગ પ્રાપ્ત થયેલ છે. 
 શ્રી સ્વામિનારાયણ ગુરુકુળ અમદાવાદ - નિકોલ`,
-        phoneNumbers: u,
+        phoneNumbers: g,
       };
       try {
         a = UrlFetchApp.fetch("https://api.sms-gate.app/3rdparty/v1/message", {
@@ -714,8 +740,8 @@ var app = (function (l) {
           payload: JSON.stringify(c),
           muteHttpExceptions: !0,
         }).getResponseCode();
-      } catch (g) {
-        a = "Error: " + g.message;
+      } catch (m) {
+        a = "Error: " + m.message;
       }
     }
     return (
@@ -732,7 +758,7 @@ var app = (function (l) {
       { success: !0, lastRow: n.getLastRow() }
     );
   }
-  function fe(e) {
+  function ue(e) {
     const t = "GatePass",
       r = SpreadsheetApp.getActiveSpreadsheet();
     let n = r.getSheetByName(t);
@@ -762,7 +788,7 @@ var app = (function (l) {
       { success: !0, lastRow: n.getLastRow() }
     );
   }
-  function de(e) {
+  function ge(e) {
     try {
       const t = SpreadsheetApp.getActiveSpreadsheet(),
         r = t.getSpreadsheetTimeZone(),
@@ -777,61 +803,62 @@ var app = (function (l) {
             totalAmount: 0,
             totalQuantity: 0,
           },
+          freePass: { lunch: 0, dinner: 0, totalQuantity: 0 },
           gatePass: { count: 0, entries: [] },
           donations: { count: 0, totalAmount: 0, entries: [] },
         },
-        i = (g) =>
-          g
-            ? (g instanceof Date
-                ? Utilities.formatDate(g, r, "dd/MM/yyyy")
-                : String(g)
+        i = (l) =>
+          l
+            ? (l instanceof Date
+                ? Utilities.formatDate(l, r, "dd/MM/yyyy")
+                : String(l)
               ).includes(n)
             : !1,
-        o = (g) => {
-          if (!g) return "-";
-          if (g instanceof Date)
-            return Utilities.formatDate(g, r, "hh:mm a").toUpperCase();
-          const h = String(g);
+        o = (l) => {
+          if (!l) return "-";
+          if (l instanceof Date)
+            return Utilities.formatDate(l, r, "hh:mm a").toUpperCase();
+          const h = String(l);
           if (h.match(/\d{1,2}:\d{2}/)) {
-            const m = h.split(":");
-            let d = parseInt(m[0]);
-            const S = m[1].substring(0, 2),
+            const u = h.split(":");
+            let d = parseInt(u[0]);
+            const S = u[1].substring(0, 2),
               y = d >= 12 ? "PM" : "AM";
             return ((d = d % 12 || 12), d + ":" + S + " " + y);
           }
           return h.toUpperCase();
         },
-        a = (g, h = 1e3) => {
-          const m = t.getSheetByName(g);
-          if (!m) return { headers: [], rows: [] };
-          const d = m.getLastRow();
+        a = (l, h = 1e3) => {
+          const u = t.getSheetByName(l);
+          if (!u) return { headers: [], rows: [] };
+          const d = u.getLastRow();
           if (d < 1) return { headers: [], rows: [] };
-          const S = m.getLastColumn(),
-            y = m.getRange(1, 1, Math.min(d, h + 1), S).getValues(),
-            F = y[0].map((O) => String(O).trim().toLowerCase());
-          let P = y.slice(1);
+          const S = u.getLastColumn(),
+            y = u.getRange(1, 1, Math.min(d, h + 1), S).getValues(),
+            A = y[0].map((O) => String(O).trim().toLowerCase());
+          let N = y.slice(1);
           return (
-            d > h && (P = m.getRange(d - h + 1, 1, h, S).getValues()),
-            { headers: F, rows: P }
+            d > h && (N = u.getRange(d - h + 1, 1, h, S).getValues()),
+            { headers: A, rows: N }
           );
         },
         f = a("FoodPass");
       if (f.headers.length > 0) {
-        const g = f.headers.indexOf("quantity"),
+        const l = f.headers.indexOf("quantity"),
           h = f.headers.indexOf("totalamount");
-        f.rows.forEach((m) => {
-          if (i(m[0])) {
-            const d = parseInt(m[g]) || 0,
-              S = parseFloat(m[h]) || 0;
+        f.rows.forEach((u) => {
+          if (i(u[0])) {
+            const d = parseInt(u[l]) || 0,
+              S = parseFloat(u[h]) || 0;
             let y = "dinner";
-            const F = m.join(" ").toLowerCase();
-            if (F.includes("lunch")) y = "lunch";
-            else if (F.includes("dinner")) y = "dinner";
+            const A = u.join(" ").toLowerCase();
+            if (A.includes("lunch")) y = "lunch";
+            else if (A.includes("dinner")) y = "dinner";
             else {
-              const P = m
+              const N = u
                 .map((O) => String(O))
                 .find((O) => O.match(/\d{1,2}:\d{2}/));
-              P && (y = parseInt(P.split(":")[0]) < 17 ? "lunch" : "dinner");
+              N && (y = parseInt(N.split(":")[0]) < 17 ? "lunch" : "dinner");
             }
             (y === "lunch"
               ? ((s.foodPass.lunch += d), (s.foodPass.lunchAmount += S))
@@ -841,45 +868,66 @@ var app = (function (l) {
           }
         });
       }
-      const u = a("GatePass", 500);
-      if (u.headers.length > 0) {
-        const g = u.headers.indexOf("name"),
-          h = u.headers.indexOf("department"),
-          m = u.headers.indexOf("outtime");
-        u.rows.forEach((d) => {
+      const g = a("FreePass");
+      if (g.headers.length > 0) {
+        const l = g.headers.indexOf("quantity");
+        g.rows.forEach((h) => {
+          if (i(h[0])) {
+            const u = parseInt(h[l]) || 0;
+            let d = "dinner";
+            const S = h.join(" ").toLowerCase();
+            if (S.includes("lunch")) d = "lunch";
+            else if (S.includes("dinner")) d = "dinner";
+            else {
+              const y = h
+                .map((A) => String(A))
+                .find((A) => A.match(/\d{1,2}:\d{2}/));
+              y && (d = parseInt(y.split(":")[0]) < 17 ? "lunch" : "dinner");
+            }
+            (d === "lunch" ? (s.freePass.lunch += u) : (s.freePass.dinner += u),
+              (s.freePass.totalQuantity += u));
+          }
+        });
+      }
+      const c = a("GatePass", 500);
+      if (c.headers.length > 0) {
+        const l = c.headers.indexOf("name"),
+          h = c.headers.indexOf("department"),
+          u = c.headers.indexOf("outtime");
+        c.rows.forEach((d) => {
           i(d[0]) &&
             (s.gatePass.count++,
             s.gatePass.entries.push({
-              name: String(d[g] || "Unknown"),
+              name: String(d[l] || "Unknown"),
               dept: String(d[h] || "-"),
-              outTime: o(d[m]),
+              outTime: o(d[u]),
             }));
         });
       }
-      const c = a("Donations", 500);
-      if (c.headers.length > 0) {
-        const g = c.headers.indexOf("name"),
-          h = c.headers.indexOf("note");
-        let m = c.headers.indexOf("amount");
-        (m === -1 &&
-          (m = c.headers.findIndex(
+      const m = a("Donations", 500);
+      if (m.headers.length > 0) {
+        const l = m.headers.indexOf("name"),
+          h = m.headers.indexOf("note");
+        let u = m.headers.indexOf("amount");
+        (u === -1 &&
+          (u = m.headers.findIndex(
             (d) => d.includes("amt") || d.includes("rs"),
           )),
-          c.rows.forEach((d) => {
+          m.rows.forEach((d) => {
             if (i(d[0])) {
               let S = 0;
-              if (m !== -1)
-                S = parseFloat(String(d[m]).replace(/[^\d.]/g, "")) || 0;
+              if (u !== -1)
+                S = parseFloat(String(d[u]).replace(/[^\d.]/g, "")) || 0;
               else {
                 const y = d.filter(
-                  (F) => typeof F == "number" && F > 10 && F !== 202,
+                  (A) => typeof A == "number" && A > 10 && A !== 202,
                 );
                 S = y.length > 0 ? y[y.length - 1] : 0;
               }
               (s.donations.count++,
                 (s.donations.totalAmount += S),
                 s.donations.entries.push({
-                  name: String(d[g] || "Donor"),
+                  name: String(d[l] || "Donor"),
                   purpose: String(d[h] || "-"),
                   amount: S,
                 }));
@@ -892,20 +940,21 @@ var app = (function (l) {
     }
   }
   return (
-    (l.addDonation = ce),
-    (l.addFoodPass = ne),
-    (l.addGatePass = fe),
-    (l.addVoucher = te),
-    (l.doGet = v),
-    (l.getAllDonors = ie),
-    (l.getDailyReport = de),
-    (l.getDonorDetails = oe),
-    (l.getFoodPassPrice = se),
-    (l.getGmailAliases = _),
-    (l.getVouchers = ee),
-    (l.makeQueryString = k),
-    Object.defineProperty(l, Symbol.toStringTag, { value: "Module" }),
-    l
+    (F.addDonation = de),
+    (F.addFoodPass = se),
+    (F.addFreePass = ie),
+    (F.addGatePass = ue),
+    (F.addVoucher = re),
+    (F.doGet = ee),
+    (F.getAllDonors = ce),
+    (F.getDailyReport = ge),
+    (F.getDonorDetails = ae),
+    (F.getFoodPassPrice = oe),
+    (F.getGmailAliases = q),
+    (F.getVouchers = te),
+    (F.makeQueryString = v),
+    Object.defineProperty(F, Symbol.toStringTag, { value: "Module" }),
+    F
   );
 })({});
 
@@ -914,6 +963,9 @@ function addDonation() {
 }
 function addFoodPass() {
   return app.addFoodPass.apply(this, arguments);
+}
+function addFreePass() {
+  return app.addFreePass.apply(this, arguments);
 }
 function addGatePass() {
   return app.addGatePass.apply(this, arguments);

@@ -1,6 +1,6 @@
 import { queueOfflineRequest } from './utils/offlineSync';
 
-const mutatingFunctions = ['addFoodPass', 'addGatePass', 'addDonation', 'addVoucher'];
+const mutatingFunctions = ['addFoodPass', 'addFreePass', 'addGatePass', 'addDonation', 'addVoucher'];
 
 /**
  * Raw execution of GAS function without queuing

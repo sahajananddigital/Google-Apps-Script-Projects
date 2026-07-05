@@ -46,7 +46,7 @@ const Dashboard = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Food Pass Card */}
         <div className="bg-orange-50 rounded-2xl p-6 border border-orange-100">
           <div className="flex items-center gap-3 mb-4">
@@ -75,6 +75,37 @@ const Dashboard = () => {
               <div className="text-4xl font-black text-orange-900 font-mono flex items-baseline gap-1">
                 <span className="text-xl">₹</span>
                 {data.foodPass.totalAmount}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Free Pass Card */}
+        <div className="bg-indigo-50 rounded-2xl p-6 border border-indigo-100">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-indigo-600 text-white p-2 rounded-lg">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+              </svg>
+            </div>
+            <h3 className="font-bold text-indigo-900 text-lg">Free Passes</h3>
+          </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 border-b border-indigo-200 pb-3">
+               <div>
+                  <div className="text-[10px] text-indigo-600 uppercase font-bold tracking-wider">Morning (Lunch)</div>
+                  <div className="text-xl font-black text-indigo-900">{(data.freePass || {}).lunch || 0} <span className="text-xs font-normal">qty</span></div>
+               </div>
+               <div>
+                  <div className="text-[10px] text-indigo-600 uppercase font-bold tracking-wider">Evening (Dinner)</div>
+                  <div className="text-xl font-black text-indigo-900">{(data.freePass || {}).dinner || 0} <span className="text-xs font-normal">qty</span></div>
+               </div>
+            </div>
+            <div className="pt-2">
+              <div className="text-xs text-indigo-600 uppercase font-bold tracking-widest mb-1">Total Issued</div>
+              <div className="text-4xl font-black text-indigo-900 font-mono flex items-baseline gap-1">
+                {(data.freePass || {}).totalQuantity || 0}
+                <span className="text-sm font-normal text-indigo-600 uppercase tracking-widest ml-1">qty</span>
               </div>
             </div>
           </div>

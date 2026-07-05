@@ -14,6 +14,11 @@ export function getDailyReport(clientDate) {
         totalAmount: 0, 
         totalQuantity: 0 
       },
+      freePass: {
+        lunch: 0,
+        dinner: 0,
+        totalQuantity: 0
+      },
       gatePass: { count: 0, entries: [] },
       donations: { count: 0, totalAmount: 0, entries: [] }
     };
@@ -90,6 +95,41 @@ export function getDailyReport(clientDate) {
           
           report.foodPass.totalQuantity += qty;
           report.foodPass.totalAmount += amt;
+        }
+      });
+    }
+
+    // 1.1 Free Pass Summary
+    const free = getSafeData("FreePass");
+    if (free.headers.length > 0) {
+      const qtyIdx = free.headers.indexOf("quantity");
+      
+      free.rows.forEach(row => {
+        if (isToday(row[0])) {
+          const qty = parseInt(row[qtyIdx]) || 0;
+          
+          let finalType = "dinner";
+          const rowStr = row.join(" ").toLowerCase();
+          
+          if (rowStr.includes("lunch")) {
+            finalType = "lunch";
+          } else if (rowStr.includes("dinner")) {
+            finalType = "dinner";
+          } else {
+            const timeStr = row.map(c => String(c)).find(c => c.match(/\d{1,2}:\d{2}/));
+            if (timeStr) {
+              const hour = parseInt(timeStr.split(":")[0]);
+              finalType = (hour < 17) ? "lunch" : "dinner";
+            }
+          }
+          
+          if (finalType === "lunch") {
+            report.freePass.lunch += qty;
+          } else {
+            report.freePass.dinner += qty;
+          }
+          
+          report.freePass.totalQuantity += qty;
         }
       });
     }

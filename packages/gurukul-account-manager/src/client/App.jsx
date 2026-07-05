@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import VoucherForm from './components/VoucherForm';
 import FoodPassForm from './components/FoodPassForm';
+import FreePassForm from './components/FreePassForm';
 import GatePassForm from './components/GatePassForm';
 import DonationForm from './components/DonationForm';
 import VoucherList from './components/VoucherList';
@@ -142,8 +143,9 @@ const App = () => {
                   <div className="h-6 w-1 bg-orange-500 rounded-full"></div>
                   <h2 className="text-lg font-bold text-slate-700 uppercase tracking-wider">Passes & Donations</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"><FoodPassForm /></div>
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"><FreePassForm /></div>
                   <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"><GatePassForm /></div>
                   <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"><DonationForm /></div>
                 </div>
