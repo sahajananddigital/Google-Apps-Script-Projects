@@ -3,9 +3,9 @@ import { makeQueryString } from './server/http.js';
 import { doGet } from './server/webapp.js';
 import { getVouchers, addVoucher } from './server/voucher.js'
 import { addFoodPass, getFoodPassPrice } from './server/foodPass.js'
-import { addFreePass } from './server/freePass.js'
+import { addFreePass, getFreePassTypes } from './server/freePass.js'
 import { addDonation, getDonorDetails, getAllDonors } from './server/donation.js'
 import { addGatePass } from './server/gatePass.js';
 import { getDailyReport } from './server/report.js';
 
-export { doGet, getGmailAliases, makeQueryString, getVouchers, addVoucher, addFoodPass, getFoodPassPrice, addFreePass, addDonation, getDonorDetails, getAllDonors, addGatePass, getDailyReport };
+export { doGet, getGmailAliases, makeQueryString, getVouchers, addVoucher, addFoodPass, getFoodPassPrice, addFreePass, getFreePassTypes, addDonation, getDonorDetails, getAllDonors, addGatePass, getDailyReport };

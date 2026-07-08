@@ -24,6 +24,8 @@ export function getSettingFromSheet(key, defaultValue) {
     let description = "";
     if (key === "FOOD_PASS_PRICE") {
       description = "Rate for a single food pass";
+    } else if (key === "FREE_PASS_TYPES") {
+      description = "Comma-separated list of free pass types (e.g. hostel,student,teacher,staff)";
     }
     sheet.appendRow([key, defaultValue.toString(), description]);
     return defaultValue;

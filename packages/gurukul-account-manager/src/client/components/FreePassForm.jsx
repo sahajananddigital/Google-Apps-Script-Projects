@@ -1,9 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { callGAS } from '../GAS';
 
 const FreePassForm = () => {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [passTypes, setPassTypes] = useState(['Hostel', 'Student', 'Teacher', 'Staff']);
+  const [selectedPassType, setSelectedPassType] = useState('Hostel');
+  const [customPassType, setCustomPassType] = useState('Hostel');
+
+  useEffect(() => {
+    callGAS('getFreePassTypes')
+      .then((types) => {
+        if (Array.isArray(types) && types.length > 0) {
+          const formatted = types.map(t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
+          setPassTypes(formatted);
+          setSelectedPassType(formatted[0]);
+          setCustomPassType(formatted[0]);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch free pass types:', err);
+      });
+  }, []);
 
   const displayQuantity = quantity === "" ? "" : parseInt(quantity) || 0;
 
@@ -18,12 +36,14 @@ const FreePassForm = () => {
     const todayTime = new Date().toLocaleTimeString('en-GB');
     const freePassTime = todayTime < '17:00:00' ? 'Lunch' : 'Dinner';
     const tempId = Math.floor(Date.now() / 1000).toString().slice(-6);
+    const passTypeToSend = customPassType.trim() || 'Free Pass';
 
     const freePassData = {
       quantity: finalQty,
       date: today,
       time: todayTime,
       freePassTime: freePassTime,
+      passType: passTypeToSend,
       tempId
     };
 
@@ -41,7 +61,7 @@ Date       : ${today}
 Time       : ${todayTime} (${freePassTime})
 Quantity   : ${finalQty}
 ----------------------------
-Pass Type  : Free Pass
+Pass Type  : Free Pass (${passTypeToSend})
 
 🙏 Jay Swaminarayan 🙏
 </pre>
@@ -63,6 +83,13 @@ Pass Type  : Free Pass
       .finally(() => {
         setLoading(false);
         setQuantity(1);
+        if (passTypes.length > 0) {
+          setSelectedPassType(passTypes[0]);
+          setCustomPassType(passTypes[0]);
+        } else {
+          setSelectedPassType('');
+          setCustomPassType('');
+        }
       });
   };
 
@@ -97,7 +124,7 @@ Pass Type  : Free Pass
                 required
                 min="1"
                 placeholder="0"
-                className="w-full rounded-xl border-slate-200 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-3 border transition-all text-center text-xl font-bold"
+                className="w-full rounded-xl border-slate-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border transition-all text-center text-xl font-bold"
               />
             </div>
             <button
@@ -107,6 +134,50 @@ Pass Type  : Free Pass
             >
               +
             </button>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <label className="text-sm font-semibold text-slate-600 uppercase tracking-wider block">Pass Type</label>
+          <div className="grid grid-cols-2 gap-3">
+            {passTypes.map((type) => {
+              const isSelected = selectedPassType === type;
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => {
+                    setSelectedPassType(type);
+                    setCustomPassType(type);
+                  }}
+                  className={`py-3 px-4 rounded-xl font-bold transition-all text-center text-sm border active:scale-95 cursor-pointer ${
+                    isSelected
+                      ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                  }`}
+                >
+                  {type}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2">
+            <input
+              type="text"
+              value={customPassType}
+              onChange={(e) => {
+                const val = e.target.value;
+                setCustomPassType(val);
+                const match = passTypes.find(t => t.toLowerCase() === val.toLowerCase().trim());
+                if (match) {
+                  setSelectedPassType(match);
+                } else {
+                  setSelectedPassType('');
+                }
+              }}
+              placeholder="Or type custom pass type..."
+              className="w-full rounded-xl border-slate-200 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border transition-all text-slate-800 font-semibold text-sm bg-white"
+            />
           </div>
         </div>
         

@@ -101,13 +101,29 @@ const Dashboard = () => {
                   <div className="text-xl font-black text-indigo-900">{(data.freePass || {}).dinner || 0} <span className="text-xs font-normal">qty</span></div>
                </div>
             </div>
-            <div className="pt-2">
+            
+            <div className="pb-3 border-b border-indigo-200">
               <div className="text-xs text-indigo-600 uppercase font-bold tracking-widest mb-1">Total Issued</div>
               <div className="text-4xl font-black text-indigo-900 font-mono flex items-baseline gap-1">
                 {(data.freePass || {}).totalQuantity || 0}
                 <span className="text-sm font-normal text-indigo-600 uppercase tracking-widest ml-1">qty</span>
               </div>
             </div>
+
+            {/* Breakdown by Type */}
+            {Object.keys((data.freePass || {}).byType || {}).length > 0 && (
+              <div className="py-1">
+                <div className="text-[10px] text-indigo-600 uppercase font-bold tracking-wider mb-2">Breakdown by Type</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries((data.freePass || {}).byType || {}).map(([type, qty]) => (
+                    <div key={type} className="bg-white p-1.5 rounded-lg text-[11px] flex justify-between border border-indigo-100 items-center">
+                      <span className="font-bold text-slate-700 truncate max-w-[80px]">{type}</span>
+                      <span className="font-bold text-indigo-700">{qty} qty</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

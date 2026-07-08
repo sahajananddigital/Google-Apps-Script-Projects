@@ -17,7 +17,9 @@ export function getDailyReport(clientDate) {
       freePass: {
         lunch: 0,
         dinner: 0,
-        totalQuantity: 0
+        totalQuantity: 0,
+        byType: {},
+        entries: []
       },
       gatePass: { count: 0, entries: [] },
       donations: { count: 0, totalAmount: 0, entries: [] }
@@ -103,6 +105,11 @@ export function getDailyReport(clientDate) {
     const free = getSafeData("FreePass");
     if (free.headers.length > 0) {
       const qtyIdx = free.headers.indexOf("quantity");
+      let typeIdx = free.headers.indexOf("passtype");
+      if (typeIdx === -1) {
+        typeIdx = free.headers.indexOf("totalamount");
+      }
+      const timeIdx = free.headers.indexOf("time");
       
       free.rows.forEach(row => {
         if (isToday(row[0])) {
@@ -130,6 +137,25 @@ export function getDailyReport(clientDate) {
           }
           
           report.freePass.totalQuantity += qty;
+
+          // Extract and format free pass type
+          let passType = typeIdx !== -1 ? String(row[typeIdx]).trim() : "";
+          if (passType === "0" || !passType) {
+            passType = "Standard";
+          }
+          // Format as Title Case
+          passType = passType.charAt(0).toUpperCase() + passType.slice(1).toLowerCase();
+
+          // Aggregate quantity by pass type
+          report.freePass.byType[passType] = (report.freePass.byType[passType] || 0) + qty;
+
+          // Record individual entry log
+          report.freePass.entries.push({
+            time: timeIdx !== -1 ? formatTime(row[timeIdx]) : "-",
+            mealType: finalType.charAt(0).toUpperCase() + finalType.slice(1),
+            passType: passType,
+            quantity: qty
+          });
         }
       });
     }

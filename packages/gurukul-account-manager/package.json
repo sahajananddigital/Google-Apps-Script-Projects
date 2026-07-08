@@ -13,7 +13,7 @@
     "gas:build": "vite build --config vite.config.js",
     "build": "npm run gas:build && npm run web:build",
     "postbuild": "npx prettier --write dist/**/*.js",
-    "push": "npx clasp push",
+    "push": "npx clasp push -f",
     "deploy": "npm run build && npm run push"
   },
   "keywords": [
