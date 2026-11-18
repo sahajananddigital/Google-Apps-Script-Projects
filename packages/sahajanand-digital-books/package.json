@@ -1,0 +1,35 @@
+{
+  "name": "sahajanand-digital-books",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Sahajanand Digital - Accounting & Invoice Management Web Application for Google Apps Script",
+  "author": "Sahajanand Digital",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/**/*.test.js",
+    "web:dev": "vite build --config vite.client.js --mode development --watch",
+    "web:build": "vite build --config vite.client.js",
+    "gas:dev": "vite build --config vite.config.js --mode development --watch",
+    "gas:build": "vite build --config vite.config.js",
+    "build": "npm run gas:build && npm run web:build",
+    "postbuild": "npx prettier --write dist/**/*.js",
+    "push": "npx clasp push --force",
+    "deploy": "npm run build && npm run push"
+  },
+  "dependencies": {
+    "apps-script-oauth2": "github:googleworkspace/apps-script-oauth2",
+    "query-string": "^9.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/google-apps-script": "^1.0.97",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.0",
+    "vite": "^6.2.6",
+    "vite-plugin-singlefile": "^2.3.0",
+    "vite-plugin-static-copy": "^2.3.1",
+    "vite-tsconfig-paths": "^5.1.2"
+  }
+}
