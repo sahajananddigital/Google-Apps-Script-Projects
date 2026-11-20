@@ -34,11 +34,11 @@ export const buildInvoiceMarkerContext = (invoice = {}, customer = {}, settings 
     terms: invoice.terms || invoice.Terms || settings.defaultTerms || 'Payment due on receipt.',
 
     // Financial markers
-    netTotal: formatINR(netTotal),
-    taxTotal: formatINR(taxTotal),
-    grandTotal: formatINR(grandTotal),
-    totalInWords: amountToWords(grandTotal),
-    outstandingAmount: formatINR(parseFloat(invoice.outstandingAmount !== undefined ? invoice.outstandingAmount : (invoice.OutstandingAmount || 0))),
+    netTotal: formatINR(netTotal, settings.currency),
+    taxTotal: formatINR(taxTotal, settings.currency),
+    grandTotal: formatINR(grandTotal, settings.currency),
+    totalInWords: amountToWords(grandTotal, settings.currency),
+    outstandingAmount: formatINR(parseFloat(invoice.outstandingAmount !== undefined ? invoice.outstandingAmount : (invoice.OutstandingAmount || 0)), settings.currency),
 
     // Customer / Student markers
     customerName: custName,

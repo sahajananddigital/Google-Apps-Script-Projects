@@ -27,10 +27,41 @@ export const SHEET_SCHEMAS = {
 };
 
 /**
- * Get active spreadsheet handle safely
+ * Set target spreadsheet ID in Script Properties
+ */
+export const setDatabaseSpreadsheetId = (id) => {
+  if (!id) return { success: false, message: 'Spreadsheet ID cannot be empty' };
+  try {
+    const cleanId = String(id).trim().replace(/^https:\/\/docs\.google\.com\/spreadsheets\/d\//, '').replace(/\/.*$/, '');
+    PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', cleanId);
+    return { success: true, message: `Successfully connected to Spreadsheet ID: ${cleanId}` };
+  } catch (e) {
+    return { success: false, message: e.toString() };
+  }
+};
+
+/**
+ * Get active spreadsheet handle safely from Script Properties or container-bound document
  */
 export const getSpreadsheet = () => {
-  return SpreadsheetApp.getActiveSpreadsheet();
+  // 1. Script Properties override if configured
+  try {
+    const propId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+    if (propId) return SpreadsheetApp.openById(propId);
+  } catch (e) {}
+
+  // 2. Active spreadsheet (if container-bound)
+  try {
+    const active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active) {
+      try {
+        PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', active.getId());
+      } catch (err) {}
+      return active;
+    }
+  } catch (e) {}
+
+  return null;
 };
 
 /**
@@ -90,29 +121,30 @@ export const initDatabase = () => {
   const setSheet = ss.getSheetByName(SHEETS.SETTINGS);
   if (setSheet.getLastRow() <= 1) {
     const defaultSettings = [
-      ['companyName', 'Sahajanand Digital'],
-      ['fullname', 'Vanpariya Ronakkumar Jagdishbhai'],
-      ['address', '505, 3rd Floor, Blueberry Complex, Near Gurukul Circle, Nikol, Ahmedabad, Gujarat, India, 382350'],
-      ['phone', '+91 8160535181'],
-      ['email', 'sahajananddigital108@gmail.com'],
-      ['website', 'https://sahajananddigital.in'],
-      ['pan', 'BURPJ8082P'],
-      ['udyam', 'UDYAM-GJ-01-0385616'],
-      ['gstin', 'URP'],
-      ['primaryBankName', 'Tamilnad Mercantile Bank'],
-      ['primaryBankBranch', 'Nikol (Blueberry)'],
+      ['companyName', 'My Organization'],
+      ['fullname', ''],
+      ['address', ''],
+      ['phone', ''],
+      ['email', ''],
+      ['website', ''],
+      ['pan', ''],
+      ['udyam', ''],
+      ['gstin', ''],
+      ['primaryBankName', 'Primary Bank'],
+      ['primaryBankBranch', ''],
       ['primaryAccountType', 'Current'],
-      ['primaryAccountNo', '60853 1837 108 915'],
-      ['primaryIfsc', 'TMBL0000608'],
-      ['primaryUpiId', 'sahajananddigitalnikol@tmb'],
-      ['secondaryBankName', 'Federal Bank'],
-      ['secondaryBankBranch', 'Neo Banking - Jupiter'],
+      ['primaryAccountNo', ''],
+      ['primaryIfsc', ''],
+      ['primaryUpiId', ''],
+      ['upiPayeeName', ''],
+      ['secondaryBankName', 'Secondary Bank'],
+      ['secondaryBankBranch', ''],
       ['secondaryAccountType', 'Savings'],
-      ['secondaryAccountNo', '77770117398715'],
-      ['secondaryIfsc', 'FDRL0007777'],
-      ['secondaryUpiId', '7574841101@jupiteraxis'],
+      ['secondaryAccountNo', ''],
+      ['secondaryIfsc', ''],
+      ['secondaryUpiId', ''],
       ['defaultPrintTemplate', 'IndianStyleTally'],
-      ['brandColor', '#112B42'],
+      ['brandColor', '#1e3a8a'],
       ['currency', 'INR'],
       ['organizationType', 'business'], // 'business' | 'institute'
     ];

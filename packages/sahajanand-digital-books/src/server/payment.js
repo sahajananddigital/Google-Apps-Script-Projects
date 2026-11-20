@@ -1,4 +1,5 @@
 import { getSheet, SHEETS, getRowsAsObjects, getNextSeriesNumber } from './db.js';
+import { syncCustomerOutstanding } from './customer.js';
 
 /**
  * Get all payment records
@@ -9,42 +10,60 @@ export const getPayments = () => {
 };
 
 /**
- * Record a payment receipt against an invoice or customer
+ * Record a payment receipt against an invoice or customer.
+ * Supports single account deposits or split payments across multiple accounts for one invoice.
  */
 export const addPayment = (paymentData) => {
   const paySheet = getSheet(SHEETS.PAYMENTS);
-  const paymentNo = paymentData.paymentNo || getNextSeriesNumber('Payment');
   const date = paymentData.date || new Date().toISOString().substring(0, 10);
   const customerName = paymentData.customerName || '';
   const invoiceNo = paymentData.invoiceNo || '';
-  const amount = parseFloat(paymentData.amount || 0);
-  const paymentMethod = paymentData.paymentMethod || 'Transfer';
-  const account = paymentData.account || 'Federal Bank';
-  const referenceTxnId = paymentData.referenceTxnId || '';
   const createdAt = new Date().toISOString();
 
-  // Append payment row
-  paySheet.appendRow([
-    paymentNo,
-    date,
-    customerName,
-    invoiceNo,
-    amount,
-    paymentMethod,
-    account,
-    referenceTxnId,
-    createdAt,
-  ]);
+  // Support multi-account splits or single account deposit
+  const splits = Array.isArray(paymentData.splits) && paymentData.splits.length > 0
+    ? paymentData.splits
+    : [
+        {
+          account: paymentData.account || 'Primary Bank',
+          amount: parseFloat(paymentData.amount || 0),
+          paymentMethod: paymentData.paymentMethod || 'Transfer',
+          referenceTxnId: paymentData.referenceTxnId || '',
+        },
+      ];
 
-  // If tied to an invoice, deduct invoice outstanding and update status
-  if (invoiceNo) {
+  const createdPayments = [];
+  let totalAmount = 0;
+
+  splits.forEach((split) => {
+    const splitAmt = parseFloat(split.amount || 0);
+    if (splitAmt <= 0) return;
+
+    const paymentNo = split.paymentNo || getNextSeriesNumber('Payment');
+    paySheet.appendRow([
+      paymentNo,
+      date,
+      customerName,
+      invoiceNo,
+      splitAmt,
+      split.paymentMethod || paymentData.paymentMethod || 'Transfer',
+      split.account || paymentData.account || 'Primary Bank',
+      split.referenceTxnId || paymentData.referenceTxnId || '',
+      createdAt,
+    ]);
+    createdPayments.push({ paymentNo, amount: splitAmt, account: split.account });
+    totalAmount += splitAmt;
+  });
+
+  // If tied to an invoice, deduct total amount from invoice outstanding and update status
+  if (invoiceNo && totalAmount > 0) {
     const invSheet = getSheet(SHEETS.INVOICES);
     const invData = invSheet.getDataRange().getValues();
 
     for (let i = 1; i < invData.length; i++) {
       if (invData[i][0] === invoiceNo) {
         const currentOutstanding = parseFloat(invData[i][7] || 0);
-        const newOutstanding = Math.max(0, currentOutstanding - amount);
+        const newOutstanding = Math.max(0, currentOutstanding - totalAmount);
         invSheet.getRange(i + 1, 8).setValue(newOutstanding);
 
         if (newOutstanding === 0) {
@@ -55,18 +74,15 @@ export const addPayment = (paymentData) => {
     }
   }
 
-  // Deduct customer outstanding balance
-  if (customerName) {
-    const custSheet = getSheet(SHEETS.CUSTOMERS);
-    const custData = custSheet.getDataRange().getValues();
-    for (let i = 1; i < custData.length; i++) {
-      if (custData[i][0] === customerName) {
-        const current = parseFloat(custData[i][11] || 0);
-        custSheet.getRange(i + 1, 12).setValue(Math.max(0, current - amount));
-        break;
-      }
-    }
+  // Deduct/sync customer outstanding balance
+  if (customerName && totalAmount > 0) {
+    syncCustomerOutstanding();
   }
 
-  return { success: true, paymentNo };
+  return {
+    success: true,
+    paymentNos: createdPayments.map((p) => p.paymentNo),
+    paymentNo: createdPayments[0]?.paymentNo || '',
+    totalAmount,
+  };
 };

@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { callGAS } from '../GAS';
-import { formatINR, formatDate } from '../utils/formatters';
+import { formatINR, formatDate, getCurrencySymbol } from '../utils/formatters';
 import { toSafeArray } from '../utils/safeArray';
 import ChartOfAccountsTree from './ChartOfAccountsTree';
 
-const AccountingManager = ({ accounts = [], journalEntries = [], onRefresh }) => {
+const AccountingManager = ({ accounts = [], journalEntries = [], settings = {}, onRefresh }) => {
   const safeAccounts = toSafeArray(accounts);
   const safeJournalEntries = toSafeArray(journalEntries);
 
@@ -13,16 +13,22 @@ const AccountingManager = ({ accounts = [], journalEntries = [], onRefresh }) =>
   const [ledgerEntries, setLedgerEntries] = useState([]);
   const [ledgerLoading, setLedgerLoading] = useState(false);
 
+  const getInitialSplits = () => {
+    const debitAcc = safeAccounts.find((a) => (a.rootType || a.RootType) === 'Expense')?.name || 'Operating Expenses';
+    const creditAcc = settings.primaryBankName || safeAccounts.find((a) => (a.accountType || a.AccountType) === 'Bank')?.name || 'Primary Bank';
+    return [
+      { account: debitAcc, debit: 0, credit: 0 },
+      { account: creditAcc, debit: 0, credit: 0 },
+    ];
+  };
+
   // New JV State
   const [showNewJvModal, setShowNewJvModal] = useState(false);
   const [jvData, setJvData] = useState({
     date: new Date().toISOString().substring(0, 10),
     entryType: 'Journal Entry',
     narration: '',
-    splits: [
-      { account: 'Hetzner', debit: 0, credit: 0 },
-      { account: 'Federal Bank', debit: 0, credit: 0 },
-    ],
+    splits: getInitialSplits(),
   });
   const [jvSaving, setJvSaving] = useState(false);
 
@@ -92,10 +98,7 @@ const AccountingManager = ({ accounts = [], journalEntries = [], onRefresh }) =>
           date: new Date().toISOString().substring(0, 10),
           entryType: 'Journal Entry',
           narration: '',
-          splits: [
-            { account: 'Hetzner', debit: 0, credit: 0 },
-            { account: 'Federal Bank', debit: 0, credit: 0 },
-          ],
+          splits: getInitialSplits(),
         });
         if (onRefresh) onRefresh();
       } else {
@@ -262,8 +265,8 @@ const AccountingManager = ({ accounts = [], journalEntries = [], onRefresh }) =>
                   <th className="py-3 px-4">Date</th>
                   <th className="py-3 px-4">Voucher #</th>
                   <th className="py-3 px-4">Narration</th>
-                  <th className="py-3 px-4 text-right">Debit (₹)</th>
-                  <th className="py-3 px-4 text-right">Credit (₹)</th>
+                  <th className="py-3 px-4 text-right">Debit ({getCurrencySymbol(settings.currency)})</th>
+                  <th className="py-3 px-4 text-right">Credit ({getCurrencySymbol(settings.currency)})</th>
                   <th className="py-3 px-4 text-right">Running Balance</th>
                 </tr>
               </thead>

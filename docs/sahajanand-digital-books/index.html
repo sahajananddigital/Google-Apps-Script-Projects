@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gurukul Books - Invoicing & Accounting ERP for Google Sheets</title>
+  <link rel="icon" type="image/png" href="assets/app-icon-32x32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- Navigation -->
+  <nav class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <img src="assets/app-logo-120x120.png" alt="Gurukul Books Logo" class="w-10 h-10 rounded-xl shadow-md border border-slate-700 object-cover">
+        <div>
+          <span class="font-extrabold text-white text-base tracking-tight block leading-tight">Gurukul Books</span>
+          <span class="text-[11px] text-blue-400 font-medium block">Invoicing & Accounting ERP</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 text-xs font-semibold">
+        <a href="#features" class="hidden sm:inline text-slate-300 hover:text-white transition-colors">Features</a>
+        <a href="privacy.html" class="text-slate-300 hover:text-white transition-colors">Privacy</a>
+        <a href="terms.html" class="text-slate-300 hover:text-white transition-colors">Terms</a>
+        <a 
+          href="https://script.google.com/macros/s/AKfycbxJtXVSWXBJzSvDRPbXk0e3B7O4EAg56fusm7ZnTERmBTaq2AUBrcR3d7Qt_ZH2tBWLvw/exec" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-xs transition-all flex items-center gap-1.5 font-bold"
+        >
+          Launch App
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="max-w-5xl mx-auto px-4 sm:px-6 pt-16 pb-20 text-center space-y-6">
+    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-950/80 border border-blue-800 text-blue-300 text-xs font-semibold">
+      <span class="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      100% Private • Google Sheets as Database • Zero Vendor Lock-in
+    </div>
+
+    <h1 class="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight max-w-4xl mx-auto">
+      Double-Entry ERP & Invoicing <br class="hidden sm:inline" />
+      <span class="bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-300 bg-clip-text text-transparent">
+        Directly in Google Sheets
+      </span>
+    </h1>
+
+    <p class="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+      Transform standard Google Sheets into a high-performance ERP. Manage GST invoices, academic fee receipts, live bank balance reconciliation, and general ledgers without expensive third-party subscriptions.
+    </p>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+      <a 
+        href="https://script.google.com/macros/s/AKfycbxJtXVSWXBJzSvDRPbXk0e3B7O4EAg56fusm7ZnTERmBTaq2AUBrcR3d7Qt_ZH2tBWLvw/exec" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        class="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold rounded-2xl shadow-lg shadow-blue-950/50 transition-all text-sm flex items-center justify-center gap-2"
+      >
+        <span>Open Gurukul Books</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+      </a>
+      <a 
+        href="https://github.com/sahajananddigital/Google-Apps-Script-Projects" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        class="w-full sm:w-auto px-6 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl border border-slate-700 transition-all text-sm flex items-center justify-center gap-2"
+      >
+        <svg class="h-4 w-4 fill-current" viewBox="0 0 24 24">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        <span>GitHub Repository</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Key Features Grid -->
+  <section id="features" class="max-w-6xl mx-auto px-4 sm:px-6 py-16 border-t border-slate-800">
+    <div class="text-center max-w-2xl mx-auto mb-12 space-y-2">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Engineered for Businesses & Educational Gurukuls</h2>
+      <p class="text-xs sm:text-sm text-slate-400">Everything you need to run professional accounting, billing, and financial reconciliations.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Card 1 -->
+      <div class="bg-slate-800/60 rounded-3xl p-6 border border-slate-700/80 space-y-3">
+        <div class="w-12 h-12 rounded-2xl bg-blue-600/20 text-blue-400 flex items-center justify-center text-2xl">
+          🏛️
+        </div>
+        <h3 class="text-lg font-bold text-white">Dual Operational Presets</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Switch effortlessly between <strong>Commercial Business Mode</strong> (Tax Invoices, Customers, Service Catalog) and <strong>Gurukul / Institute Mode</strong> (Fee Receipts, Students, Courses, Semesters).
+        </p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="bg-slate-800/60 rounded-3xl p-6 border border-slate-700/80 space-y-3">
+        <div class="w-12 h-12 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-2xl">
+          ⚖️
+        </div>
+        <h3 class="text-lg font-bold text-white">Double-Entry General Ledger</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Real double-entry accounting with automatic Journal Vouchers, dynamic Chart of Accounts tree, Trial Balance, Profit & Loss, and Balance Sheet matching the exact paisa.
+        </p>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="bg-slate-800/60 rounded-3xl p-6 border border-slate-700/80 space-y-3">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center text-2xl">
+          💳
+        </div>
+        <h3 class="text-lg font-bold text-white">Live Bank & Cash Reconciliation</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Monitor real-time liquidity across primary and secondary bank accounts and cash registers with multi-account payment splits and accurate expense filtering.
+        </p>
+      </div>
+
+      <!-- Card 4 -->
+      <div class="bg-slate-800/60 rounded-3xl p-6 border border-slate-700/80 space-y-3">
+        <div class="w-12 h-12 rounded-2xl bg-cyan-600/20 text-cyan-400 flex items-center justify-center text-2xl">
+          🌐
+        </div>
+        <h3 class="text-lg font-bold text-white">Universal Currency System</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Configurable currency presets supporting INR (₹), USD ($), EUR (€), GBP (£), AED, CAD, AUD, SGD, and custom currencies with international words conversion.
+        </p>
+      </div>
+
+      <!-- Card 5 -->
+      <div class="bg-slate-800/60 rounded-3xl p-6 border border-slate-700/80 space-y-3">
+        <div class="w-12 h-12 rounded-2xl bg-amber-600/20 text-amber-400 flex items-center justify-center text-2xl">
+          📱
+        </div>
+        <h3 class="text-lg font-bold text-white">Dynamic UPI QR Codes</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Invoices and fee receipts dynamically embed UPI QR codes with exact remaining outstanding balances for instant payments via GPay, PhonePe, Paytm, or BHIM.
+        </p>
+      </div>
+
+      <!-- Card 6 -->
+      <div class="bg-slate-800/60 rounded-3xl p-6 border border-slate-700/80 space-y-3">
+        <div class="w-12 h-12 rounded-2xl bg-rose-600/20 text-rose-400 flex items-center justify-center text-2xl">
+          🔒
+        </div>
+        <h3 class="text-lg font-bold text-white">Zero External Cloud Data</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Your data never leaves your Google Account. There are no tracking scripts, external database servers, or data mining. Complete privacy guaranteed.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Google Workspace Marketplace Compatibility -->
+  <section class="max-w-4xl mx-auto px-4 sm:px-6 py-12 text-center">
+    <div class="p-8 rounded-3xl bg-gradient-to-b from-slate-800 to-slate-850 border border-slate-700 space-y-4">
+      <div class="flex items-center justify-center gap-2">
+        <span class="text-2xl">⚡</span>
+        <h3 class="text-xl font-bold text-white">Ready for Google Workspace Marketplace</h3>
+      </div>
+      <p class="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+        Strictly compliant with the Google API Services User Data Policy, Limited Use requirements, and enterprise Google Cloud security standards.
+      </p>
+      <div class="flex flex-wrap items-center justify-center gap-4 pt-2 text-xs font-semibold text-slate-300">
+        <a href="privacy.html" class="px-4 py-2 rounded-xl bg-slate-700/60 hover:bg-slate-700 border border-slate-600 transition-colors">
+          Read Privacy Policy
+        </a>
+        <a href="terms.html" class="px-4 py-2 rounded-xl bg-slate-700/60 hover:bg-slate-700 border border-slate-600 transition-colors">
+          Read Terms of Service
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 py-8 text-center text-xs text-slate-500">
+    <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <img src="assets/app-logo-120x120.png" alt="Logo" class="w-6 h-6 rounded-md">
+        <span>© 2026 Gurukul Books ERP. Built with Google Apps Script & React.</span>
+      </div>
+      <div class="flex gap-4 font-medium text-slate-400">
+        <a href="index.html" class="hover:text-white">Home</a>
+        <a href="privacy.html" class="hover:text-white">Privacy Policy</a>
+        <a href="terms.html" class="hover:text-white">Terms of Service</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

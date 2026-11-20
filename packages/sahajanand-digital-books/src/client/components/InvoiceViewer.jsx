@@ -1,10 +1,23 @@
 import { useState, useEffect } from 'react';
 import TallyStyleInvoice from '../templates/TallyStyleInvoice';
 import ModernStyleInvoice from '../templates/ModernStyleInvoice';
+import EducationFeeReceipt from '../templates/EducationFeeReceipt';
+import EducationPartialFeeReceipt from '../templates/EducationPartialFeeReceipt';
 import { printIsolatedElement } from '../utils/printer';
 
-const InvoiceViewer = ({ invoice, customer, settings, onClose, onOpenCustomizer }) => {
-  const [template, setTemplate] = useState('tally'); // 'tally' | 'modern_tmb' | 'modern_jupiter'
+const InvoiceViewer = ({ invoice, customer, settings = {}, onClose, onOpenCustomizer }) => {
+  // Normalize default template key
+  const getDefaultTemplate = () => {
+    const def = settings?.defaultPrintTemplate;
+    if (def === 'education_receipt' || def === 'EducationFeeReceipt') return 'education_receipt';
+    if (def === 'education_partial' || def === 'EducationPartialFeeReceipt') return 'education_partial';
+    if (def === 'IndianStyleTally' || def === 'tally') return 'tally';
+    if (def === 'ModernProfessional' || def === 'TamilnadMercantileBank' || def === 'modern_tmb') return 'modern_tmb';
+    if (def === 'ModernMinimalist' || def === 'JupiterBank' || def === 'modern_jupiter') return 'modern_jupiter';
+    return settings?.organizationType === 'institute' ? 'education_receipt' : 'tally';
+  };
+
+  const [template, setTemplate] = useState(getDefaultTemplate);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -17,7 +30,7 @@ const InvoiceViewer = ({ invoice, customer, settings, onClose, onOpenCustomizer 
   if (!invoice) return null;
 
   const handlePrint = () => {
-    printIsolatedElement('invoice-print-area', `${invoice.name || invoice.InvoiceNo || 'Invoice'}`);
+    printIsolatedElement('invoice-print-area', `${invoice.name || invoice.InvoiceNo || 'Fee_Receipt'}`);
   };
 
   return (
@@ -29,9 +42,25 @@ const InvoiceViewer = ({ invoice, customer, settings, onClose, onOpenCustomizer 
     >
       {/* Top Floating / Sticky Control Bar */}
       <div className="no-print sticky top-2 z-30 max-w-[850px] w-full mx-auto mb-4 bg-white/95 backdrop-blur-md p-3 md:p-4 rounded-2xl shadow-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider">Style:</span>
-          <div className="flex bg-slate-100 p-1 rounded-xl">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider shrink-0">Style:</span>
+          <div className="flex bg-slate-100 p-1 rounded-xl shrink-0">
+            <button
+              onClick={() => setTemplate('education_receipt')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                template === 'education_receipt' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🎓 Fee Receipt
+            </button>
+            <button
+              onClick={() => setTemplate('education_partial')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                template === 'education_partial' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              💳 Partial Fee Receipt
+            </button>
             <button
               onClick={() => setTemplate('tally')}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -46,7 +75,7 @@ const InvoiceViewer = ({ invoice, customer, settings, onClose, onOpenCustomizer 
                 template === 'modern_tmb' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Modern Bank 1
+              Modern (Primary Bank)
             </button>
             <button
               onClick={() => setTemplate('modern_jupiter')}
@@ -54,12 +83,12 @@ const InvoiceViewer = ({ invoice, customer, settings, onClose, onOpenCustomizer 
                 template === 'modern_jupiter' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Modern Bank 2
+              Modern (Secondary Bank)
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {onOpenCustomizer && (
             <button
               onClick={() => {
@@ -83,7 +112,7 @@ const InvoiceViewer = ({ invoice, customer, settings, onClose, onOpenCustomizer 
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
             </svg>
-            Print / Save 1-Page PDF
+            Print / Save PDF
           </button>
 
           <button
@@ -98,8 +127,14 @@ const InvoiceViewer = ({ invoice, customer, settings, onClose, onOpenCustomizer 
         </div>
       </div>
 
-      {/* Invoice Document Body Container */}
+      {/* Document Body Container */}
       <div className="bg-white rounded-2xl shadow-2xl overflow-visible max-w-[850px] w-full mx-auto my-0 transition-all border border-slate-200/80">
+        {template === 'education_receipt' && (
+          <EducationFeeReceipt invoice={invoice} customer={customer} settings={settings} />
+        )}
+        {template === 'education_partial' && (
+          <EducationPartialFeeReceipt invoice={invoice} customer={customer} settings={settings} />
+        )}
         {template === 'tally' && (
           <TallyStyleInvoice invoice={invoice} customer={customer} settings={settings} />
         )}
@@ -111,7 +146,6 @@ const InvoiceViewer = ({ invoice, customer, settings, onClose, onOpenCustomizer 
         )}
       </div>
 
-      {/* Bottom spacer ensuring comfortable scrolling on all devices */}
       <div className="no-print h-16 w-full shrink-0"></div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { formatINR, formatDate, numberToWordsINR } from '../utils/formatters';
+import { formatINR, formatDate, numberToWordsINR, amountToWords } from '../utils/formatters';
 import { getUpiQrCodeUrl } from '../utils/upi';
 import { replaceMarkers, buildInvoiceMarkerContext } from '../utils/markerEngine';
 import { toSafeArray } from '../utils/safeArray';
@@ -181,6 +181,9 @@ const TallyStyleInvoice = ({ invoice, customer, settings = {} }) => {
                   </td>
                   <td className="p-1.5 px-2 border-r border-black text-right font-mono">
                     {it.quantity || it.Quantity || 1}
+                    {(it.unit || it.Unit) && (
+                      <span className="text-[10px] text-slate-500 font-normal block">({it.unit || it.Unit})</span>
+                    )}
                   </td>
                   <td className="p-1.5 px-2 border-r border-black text-right font-mono">
                     {formatINR(it.rate || it.Rate || it.amount)}
@@ -198,7 +201,7 @@ const TallyStyleInvoice = ({ invoice, customer, settings = {} }) => {
         <div className="flex border-b-2 border-black">
           <div className="w-3/4 border-r-2 border-black p-2.5 flex flex-col justify-end">
             <p className="text-[9px] text-slate-500 uppercase font-semibold">Amount Chargeable (in words)</p>
-            <p className="font-bold text-[11px] text-slate-900 mt-0.5">{numberToWordsINR(grandTotal)}</p>
+            <p className="font-bold text-[11px] text-slate-900 mt-0.5">{amountToWords(grandTotal, settings?.currency)}</p>
           </div>
 
           <div className="w-1/4 flex flex-col text-[11px]">

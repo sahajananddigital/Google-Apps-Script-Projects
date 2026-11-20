@@ -3,9 +3,9 @@
  * Format: upi://pay?pa={vpa}&pn={name}&tn={note}&am={amount}&cu=INR
  */
 export const buildUpiDeepLink = ({
-  pa = 'sahajananddigitalnikol@tmb',
-  pn = 'Sahajanand Digital',
-  tn = 'Invoice Payment',
+  pa = '',
+  pn = '',
+  tn = 'Payment',
   am = 0,
 }) => {
   const cleanAmount = parseFloat(am || 0).toFixed(2);

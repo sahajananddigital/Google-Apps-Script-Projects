@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { callGAS } from '../GAS';
 import { toSafeArray } from '../utils/safeArray';
+import { getCurrencySymbol } from '../utils/formatters';
 
 const FALLBACK_CATEGORIES = [
   'Server Hosting & Infrastructure',
@@ -15,7 +16,7 @@ const FALLBACK_CATEGORIES = [
   'General & Administrative Expenses',
 ];
 
-const ExpenseModal = ({ accounts = [], settings = {}, onClose, onExpenseAdded }) => {
+const ExpenseModal = ({ accounts = [], settings = {}, onClose, onExpenseAdded, initialExpense = null }) => {
   const safeAccounts = toSafeArray(accounts);
 
   // 1. Dynamic Expense Categories from Chart of Accounts
@@ -39,10 +40,38 @@ const ExpenseModal = ({ accounts = [], settings = {}, onClose, onExpenseAdded })
 
     safeAccounts.forEach((a) => {
       if (!a) return;
+      const name = a.name || a.AccountName;
+      const root = String(a.rootType || a.RootType || '').toLowerCase();
       const type = String(a.accountType || a.AccountType || '').toLowerCase();
       const parent = String(a.parentAccount || a.ParentAccount || '').toLowerCase();
-      if (!a.isGroup && (type === 'bank' || type === 'cash' || parent.includes('bank') || parent.includes('cash'))) {
-        list.add(a.name || a.AccountName);
+      const nameLower = String(name || '').toLowerCase();
+      const isGroup = a.isGroup === true || a.isGroup === 1 || a.isGroup === '1' || a.IsGroup === true || a.IsGroup === 1 || a.IsGroup === '1';
+
+      const isExpenseOrCharge =
+        root === 'expense' ||
+        root === 'liability' ||
+        root === 'income' ||
+        root === 'equity' ||
+        parent.includes('charge') ||
+        parent.includes('fee') ||
+        parent.includes('expense') ||
+        nameLower.includes('charge') ||
+        nameLower.includes('fee');
+
+      const isAsset = root === 'asset' || (!root && (type === 'bank' || type === 'cash'));
+
+      if (!isGroup && isAsset && !isExpenseOrCharge) {
+        if (
+          type === 'bank' ||
+          type === 'cash' ||
+          parent === 'bank accounts' ||
+          parent === 'cash in hand' ||
+          parent.includes('bank account') ||
+          parent.includes('cash in hand') ||
+          ((parent === 'current assets' || parent === 'assets' || !parent) && (nameLower.includes('bank') || nameLower.includes('cash')))
+        ) {
+          if (name) list.add(name);
+        }
       }
     });
 
@@ -52,12 +81,12 @@ const ExpenseModal = ({ accounts = [], settings = {}, onClose, onExpenseAdded })
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().substring(0, 10),
-    category: categories[0] || 'General Expense',
+    category: initialExpense ? (initialExpense.category || initialExpense.Category || categories[0] || 'General Expense') : (categories[0] || 'General Expense'),
     customCategory: '',
-    paidVia: paymentAccounts[0] || 'Cash In Hand',
-    amount: '',
-    description: '',
-    referenceTxnId: '',
+    paidVia: initialExpense ? (initialExpense.paidVia || initialExpense.PaidVia || paymentAccounts[0] || 'Cash In Hand') : (paymentAccounts[0] || 'Cash In Hand'),
+    amount: initialExpense ? parseFloat(initialExpense.amount || initialExpense.Amount || 0) : '',
+    description: initialExpense ? (initialExpense.description || initialExpense.Description || '') : '',
+    referenceTxnId: initialExpense ? (initialExpense.referenceTxnId || initialExpense.ReferenceTxnId || '') : '',
   });
   const [useCustomCat, setUseCustomCat] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -102,8 +131,12 @@ const ExpenseModal = ({ accounts = [], settings = {}, onClose, onExpenseAdded })
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-slate-900">Record Business Expense</h3>
-              <p className="text-xs text-slate-500">Log operational costs, vendor payouts, and subscriptions</p>
+              <h3 className="text-lg font-bold text-slate-900">
+                {initialExpense ? `Clone Expense (${initialExpense.expenseNo || initialExpense.ExpenseNo})` : 'Record Business Expense'}
+              </h3>
+              <p className="text-xs text-slate-500">
+                {initialExpense ? 'Duplicate this expense with same accounts and category' : 'Log operational costs, vendor payouts, and subscriptions'}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
@@ -152,7 +185,7 @@ const ExpenseModal = ({ accounts = [], settings = {}, onClose, onExpenseAdded })
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <label className="font-bold text-slate-600 uppercase">Amount (₹) *</label>
+              <label className="font-bold text-slate-600 uppercase">Amount ({getCurrencySymbol(settings.currency)}) *</label>
               <input
                 type="number"
                 step="any"

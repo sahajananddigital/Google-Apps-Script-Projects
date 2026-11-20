@@ -17,23 +17,23 @@ const mutatingFunctions = [
 let mockState = {
   invoices: [
     {
-      name: 'SINV-1061',
-      date: '2026-09-16',
-      party: 'Prevail Enginnering',
-      netTotal: 1359,
+      name: 'SINV-1001',
+      date: '2026-04-01',
+      party: 'Apex Academy',
+      netTotal: 25000,
       discountAmount: 0,
-      grandTotal: 1359,
+      grandTotal: 25000,
       outstandingAmount: 0,
       status: 'Paid',
       terms: 'Payment due on receipt.',
       items: [
-        { item: 'Web Server Hosting Service', description: 'Annual cloud hosting', hsnCode: '998312', quantity: 1, rate: 1359, amount: 1359 }
+        { item: 'Course Tuition Fee', description: 'Comprehensive training program', hsnCode: '999293', quantity: 1, rate: 25000, amount: 25000 }
       ]
     },
     {
-      name: 'SINV-1060',
-      date: '2026-08-15',
-      party: 'Siddhatva Accountants LLP',
+      name: 'SINV-1002',
+      date: '2026-04-05',
+      party: 'Global Tech Solutions',
       netTotal: 3000,
       discountAmount: 0,
       grandTotal: 3000,
@@ -41,19 +41,19 @@ let mockState = {
       status: 'Submitted',
       terms: 'Immediate payment',
       items: [
-        { item: 'Website Development Consultancy', description: 'Consulting services', hsnCode: '998312', quantity: 1, rate: 3000, amount: 3000 }
+        { item: 'Cloud Server Hosting', description: 'Managed cloud server hosting', hsnCode: '998312', quantity: 1, rate: 3000, amount: 3000 }
       ]
     }
   ],
   payments: [
     {
-      name: 'PAY-1045',
-      date: '2026-09-16',
-      party: 'Prevail Enginnering',
-      invoiceNo: 'SINV-1061',
-      amount: 1359,
+      name: 'PAY-1001',
+      date: '2026-04-01',
+      party: 'Apex Academy',
+      invoiceNo: 'SINV-1001',
+      amount: 25000,
       paymentMethod: 'Transfer',
-      paymentAccount: 'Federal Bank',
+      paymentAccount: 'Primary Bank',
       referenceId: 'UPI9837482910',
     }
   ],
@@ -61,17 +61,17 @@ let mockState = {
     {
       expenseNo: 'EXP-1001',
       date: '2026-09-10',
-      category: 'Server Hosting & Infrastructure (Hetzner)',
-      paidVia: 'Federal Bank',
+      category: 'Cloud Server Infrastructure',
+      paidVia: 'Primary Bank',
       amount: 351,
-      description: 'Monthly VPS cloud hosting Hetzner',
+      description: 'Monthly VPS cloud hosting servers',
       referenceTxnId: 'S55656780',
     },
     {
       expenseNo: 'EXP-1002',
       date: '2026-09-12',
       category: 'Software Subscriptions & SaaS (Google Workspace)',
-      paidVia: 'Federal Bank',
+      paidVia: 'Primary Bank',
       amount: 130,
       description: 'Google Workspace email accounts',
       referenceTxnId: '410375908459',
@@ -81,8 +81,8 @@ let mockState = {
     { name: 'Application of Funds (Assets)', rootType: 'Asset', parentAccount: '', accountType: '', isGroup: true },
     { name: 'Current Assets', rootType: 'Asset', parentAccount: 'Application of Funds (Assets)', accountType: '', isGroup: true },
     { name: 'Bank Accounts', rootType: 'Asset', parentAccount: 'Current Assets', accountType: 'Bank', isGroup: true },
-    { name: 'Federal Bank', rootType: 'Asset', parentAccount: 'Bank Accounts', accountType: 'Bank', isGroup: false },
-    { name: 'Tamilnad Mercantile Bank', rootType: 'Asset', parentAccount: 'Bank Accounts', accountType: 'Bank', isGroup: false },
+    { name: 'Primary Bank', rootType: 'Asset', parentAccount: 'Bank Accounts', accountType: 'Bank', isGroup: false },
+    { name: 'Secondary Bank', rootType: 'Asset', parentAccount: 'Bank Accounts', accountType: 'Bank', isGroup: false },
     { name: 'Cash In Hand', rootType: 'Asset', parentAccount: 'Current Assets', accountType: 'Cash', isGroup: true },
     { name: 'Cash', rootType: 'Asset', parentAccount: 'Cash In Hand', accountType: 'Cash', isGroup: false },
     { name: 'Accounts Receivable', rootType: 'Asset', parentAccount: 'Current Assets', accountType: 'Receivable', isGroup: true },
@@ -97,87 +97,74 @@ let mockState = {
     { name: 'Service', rootType: 'Income', parentAccount: 'Direct Income', accountType: 'Service', isGroup: false },
     { name: 'Expenses', rootType: 'Expense', parentAccount: '', accountType: '', isGroup: true },
     { name: 'Direct Expenses', rootType: 'Expense', parentAccount: 'Expenses', accountType: '', isGroup: true },
-    { name: 'Stock Expenses', rootType: 'Expense', parentAccount: 'Direct Expenses', accountType: 'Cost of Goods Sold', isGroup: true },
-    { name: 'Hetzner', rootType: 'Expense', parentAccount: 'Direct Expenses', accountType: 'Expense', isGroup: false },
-    { name: 'Google Products', rootType: 'Expense', parentAccount: 'Direct Expenses', accountType: 'Expense', isGroup: false },
+    { name: 'Operating Expenses', rootType: 'Expense', parentAccount: 'Direct Expenses', accountType: 'Expense', isGroup: false },
+    { name: 'Software & Hosting', rootType: 'Expense', parentAccount: 'Direct Expenses', accountType: 'Expense', isGroup: false },
   ],
   customers: [
     {
-      name: 'Prevail Enginnering',
-      email: 'info@prevailengg.com',
-      phone: '+91 9824079175',
-      addressLine1: 'Ahmedabad',
+      name: 'Apex Academy',
+      email: 'student@example.com',
+      phone: '+91 98000 00001',
+      addressLine1: 'Central Campus',
       city: 'Ahmedabad',
       state: 'Gujarat',
-      postalCode: '382350',
-      gstin: '24AFOPC8052P1Z0',
+      postalCode: '380001',
+      gstin: '24AAAAA0000A1Z5',
       outstandingAmount: 0
     },
     {
-      name: 'Siddhatva Accountants LLP',
-      email: 'nikhil@siddhatvaaccountants.com',
-      phone: '+917435075389',
-      addressLine1: '621, Shivalik Shilp 2, Opp. ITC Narmada',
+      name: 'Global Tech Solutions',
+      email: 'billing@example.com',
+      phone: '+91 98000 00002',
+      addressLine1: 'Business Hub, MG Road',
       city: 'Ahmedabad',
       state: 'Gujarat',
       postalCode: '380015',
       gstin: '',
       outstandingAmount: 3000
-    },
-    {
-      name: 'Multidots Inc.',
-      email: 'accounts@multidots.com',
-      phone: '+16468937967',
-      addressLine1: '801, Barton Springs Rd.',
-      city: 'Austin',
-      state: 'TX',
-      postalCode: '78704',
-      gstin: '',
-      outstandingAmount: 0
     }
   ],
   items: [
-    { name: 'Website Development Consultancy', rate: 95000, unit: 'Unit', hsnCode: '998312', description: 'Full stack web application development' },
-    { name: 'Web Server Hosting Service', rate: 3800, unit: 'Unit', hsnCode: '998312', description: 'Managed VPS hosting & security' },
-    { name: 'Domain Name Service', rate: 1500, unit: 'Unit', hsnCode: '998312', description: 'Domain registration & DNS management' },
-    { name: 'Other', rate: 0, unit: 'Unit', hsnCode: '998312', description: 'Custom digital consultancy' }
+    { name: 'Course Tuition Fee', rate: 25000, unit: 'Term', hsnCode: '999293', description: 'Comprehensive training program' },
+    { name: 'Web Development Consultancy', rate: 50000, unit: 'Unit', hsnCode: '998312', description: 'Full stack development services' },
+    { name: 'Cloud Server Hosting', rate: 3000, unit: 'Month', hsnCode: '998312', description: 'Managed cloud server hosting' }
   ],
   journalEntries: [
     {
-      name: 'JV-1009',
-      date: '2026-09-10',
+      name: 'JV-1001',
+      date: '2026-04-01',
       entryType: 'Journal Entry',
-      userRemark: 'Hetzner cloud server',
+      userRemark: 'Opening server subscription',
       splits: [
-        { account: 'Hetzner', debit: 351, credit: 0 },
-        { account: 'Federal Bank', debit: 0, credit: 351 }
+        { account: 'Software & Hosting', debit: 500, credit: 0 },
+        { account: 'Primary Bank', debit: 0, credit: 500 }
       ]
     }
   ],
   settings: {
-    companyName: 'Sahajanand Digital',
-    fullname: 'Vanpariya Ronakkumar Jagdishbhai',
-    address: '505, 3rd Floor, Blueberry Complex, Near Gurukul Circle, Nikol, Ahmedabad, Gujarat, India, 382350',
-    phone: '+91 8160535181',
-    email: 'sahajananddigital108@gmail.com',
-    website: 'https://sahajananddigital.in',
-    pan: 'BURPJ8082P',
-    udyam: 'UDYAM-GJ-01-0385616',
+    companyName: 'Demo Organization',
+    fullname: 'Administrator',
+    address: '100 Innovation Way, Tech Park, City, 380001',
+    phone: '+91 98000 00000',
+    email: 'contact@example.com',
+    website: 'https://example.com',
+    pan: '',
+    udyam: '',
     gstin: 'URP',
-    primaryBankName: 'Tamilnad Mercantile Bank',
-    primaryBankBranch: 'Nikol (Blueberry)',
+    primaryBankName: 'Primary Bank',
+    primaryBankBranch: 'Main Branch',
     primaryAccountType: 'Current',
-    primaryAccountNo: '60853 1837 108 915',
-    primaryIfsc: 'TMBL0000608',
-    primaryUpiId: 'sahajananddigitalnikol@tmb',
-    secondaryBankName: 'Federal Bank',
-    secondaryBankBranch: 'Neo Banking - Jupiter',
+    primaryAccountNo: '123456789012',
+    primaryIfsc: 'BANK0001234',
+    primaryUpiId: '',
+    secondaryBankName: 'Secondary Bank',
+    secondaryBankBranch: 'City Branch',
     secondaryAccountType: 'Savings',
-    secondaryAccountNo: '77770117398715',
-    secondaryIfsc: 'FDRL0007777',
-    secondaryUpiId: '7574841101@jupiteraxis',
+    secondaryAccountNo: '987654321098',
+    secondaryIfsc: 'BANK0005678',
+    secondaryUpiId: '',
     defaultPrintTemplate: 'IndianStyleTally',
-    brandColor: '#112B42',
+    brandColor: '#1e3a8a',
     currency: 'INR',
   },
 };
@@ -244,7 +231,7 @@ export const execGAS = (functionName, ...args) => {
                 invoiceNo: args[0].invoiceNo || '',
                 amount: parseFloat(args[0].amount || 0),
                 paymentMethod: args[0].paymentMethod || 'Transfer',
-                paymentAccount: args[0].account || 'Federal Bank',
+                paymentAccount: args[0].account || 'Primary Bank',
                 referenceId: args[0].referenceTxnId || '',
               };
               mockState.payments.unshift(newPay);
@@ -270,7 +257,7 @@ export const execGAS = (functionName, ...args) => {
                 expenseNo: `EXP-${Date.now().toString().slice(-4)}`,
                 date: args[0].date || new Date().toISOString().substring(0, 10),
                 category: args[0].category || 'General Expense',
-                paidVia: args[0].paidVia || 'Federal Bank',
+                paidVia: args[0].paidVia || 'Primary Bank',
                 amount: parseFloat(args[0].amount || 0),
                 description: args[0].description || '',
                 referenceTxnId: args[0].referenceTxnId || '',
@@ -289,10 +276,35 @@ export const execGAS = (functionName, ...args) => {
             case 'getItems':
               resolve(JSON.stringify(mockState.items));
               break;
-            case 'saveItem':
-              mockState.items.push(args[0]);
+            case 'saveItem': {
+              const itemData = args[0] || {};
+              const name = itemData.name || itemData.ItemName;
+              const orig = itemData.originalName;
+              const idx = mockState.items.findIndex(
+                (it) => (orig && (it.name === orig || it.ItemName === orig)) || ((it.name === name || it.ItemName === name) && !itemData.isClone)
+              );
+              if (idx >= 0) {
+                mockState.items[idx] = { ...mockState.items[idx], ...itemData, name };
+              } else {
+                mockState.items.push(itemData);
+              }
+              resolve({ success: true, message: `Item "${name}" saved` });
+              break;
+            }
+            case 'deleteItem': {
+              const targetName = args[0];
+              mockState.items = mockState.items.filter((it) => (it.name || it.ItemName) !== targetName);
+              resolve({ success: true, message: `Item "${targetName}" deleted` });
+              break;
+            }
+            case 'syncExpensesFromJournalLedgers': {
+              resolve({ success: true, count: 101, totalAmount: 222512.12 });
+              break;
+            }
+            case 'syncCustomerOutstanding': {
               resolve({ success: true });
               break;
+            }
             case 'getChartOfAccounts':
               resolve(JSON.stringify(mockState.accounts));
               break;
@@ -320,15 +332,17 @@ export const execGAS = (functionName, ...args) => {
               break;
             case 'getPrintTemplates':
               resolve(JSON.stringify([
+                { id: 'EducationFeeReceipt', name: 'Educational Institute Fee Receipt' },
+                { id: 'EducationPartialFeeReceipt', name: 'Partial / Installment Fee Receipt' },
                 { id: 'IndianStyleTally', name: 'Indian Tally Style (Tax Invoice / Bill of Supply)' },
-                { id: 'TamilnadMercantileBank', name: 'Modern Tamilnad Mercantile Bank' },
-                { id: 'JupiterBank', name: 'Modern Jupiter Bank (Federal Bank)' },
+                { id: 'ModernProfessional', name: 'Modern Professional (Primary Bank & UPI QR)' },
+                { id: 'ModernMinimalist', name: 'Modern Minimalist (Secondary Bank & UPI QR)' },
               ]));
               break;
             case 'getMigrationStatus':
               resolve({
                 success: true,
-                spreadsheetName: 'Sahajanand Digital - Accounts & Invoices (GAS)',
+                spreadsheetName: 'Demo Accounts & Invoices (GAS)',
                 spreadsheetUrl: '#',
                 totalRecords: mockState.invoices.length + mockState.payments.length + mockState.expenses.length + mockState.accounts.length + mockState.customers.length + mockState.items.length + mockState.journalEntries.length,
                 sheetCounts: {
@@ -348,21 +362,22 @@ export const execGAS = (functionName, ...args) => {
               break;
             case 'importExcelFile':
             case 'importMigrationSheets':
+            case 'importDefaultSeedData':
               resolve({
                 success: true,
                 message: 'Migration data imported successfully',
                 importedCounts: {
-                  Invoices: 36,
+                  Invoices: 46,
                   InvoiceItems: 65,
                   Payments: 45,
-                  Expenses: 24,
+                  Expenses: 89,
                   ChartOfAccounts: 109,
                   Customers: 26,
                   Items: 4,
-                  JournalEntries: 93,
-                  JournalLedgers: 211,
-                  CompanySettings: 23,
-                  NumberSeries: 5,
+                  JournalEntries: 96,
+                  JournalLedgers: 369,
+                  CompanySettings: 4,
+                  NumberSeries: 4,
                 },
               });
               break;

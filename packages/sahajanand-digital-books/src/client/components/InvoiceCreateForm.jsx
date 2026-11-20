@@ -1,30 +1,49 @@
 import { useState } from 'react';
 import { callGAS } from '../GAS';
-import { formatINR } from '../utils/formatters';
+import { formatINR, getCurrencySymbol } from '../utils/formatters';
 import { toSafeArray } from '../utils/safeArray';
 
-const InvoiceCreateForm = ({ customers = [], items = [], onInvoiceCreated, onCancel }) => {
+const InvoiceCreateForm = ({ customers = [], items = [], settings = {}, onInvoiceCreated, onCancel, initialInvoice = null }) => {
   const safeCustomers = toSafeArray(customers);
   const safeItems = toSafeArray(items);
 
+  const initCust = initialInvoice
+    ? (initialInvoice.party || initialInvoice.CustomerName || '')
+    : (safeCustomers.length > 0 ? (safeCustomers[0].name || safeCustomers[0].CustomerName) : '');
+
+  const initItems = initialInvoice && Array.isArray(initialInvoice.items) && initialInvoice.items.length > 0
+    ? initialInvoice.items.map((it) => ({
+        item: it.item || it.ItemName || '',
+        description: it.description || it.Description || '',
+        hsnCode: it.hsnCode || it.HSN_SAC || '998312',
+        unit: it.unit || it.Unit || (safeItems.find((si) => (si.name || si.ItemName) === (it.item || it.ItemName))?.unit) || 'Unit',
+        quantity: parseFloat(it.quantity || it.Quantity || 1),
+        rate: parseFloat(it.rate || it.Rate || 0),
+        amount: parseFloat(it.amount || it.Amount || 0),
+      }))
+    : [
+        {
+          item: safeItems.length > 0 ? (safeItems[0].name || safeItems[0].ItemName) : '',
+          description: '',
+          hsnCode: safeItems.length > 0 ? (safeItems[0].hsnCode || safeItems[0].HSN_SAC || '998312') : '998312',
+          unit: safeItems.length > 0 ? (safeItems[0].unit || safeItems[0].Unit || 'Unit') : 'Unit',
+          quantity: 1,
+          rate: safeItems.length > 0 ? parseFloat(safeItems[0].rate || 0) : 0,
+          amount: safeItems.length > 0 ? parseFloat(safeItems[0].rate || 0) : 0,
+        },
+      ];
+
   const [formData, setFormData] = useState({
     date: new Date().toISOString().substring(0, 10),
-    customerName: safeCustomers.length > 0 ? (safeCustomers[0].name || safeCustomers[0].CustomerName) : '',
+    customerName: initCust,
     customCustomer: '',
-    terms: 'Payment due on receipt. Thank you for your business.',
-    discountAmount: 0,
-    items: [
-      {
-        item: safeItems.length > 0 ? (safeItems[0].name || safeItems[0].ItemName) : '',
-        description: '',
-        hsnCode: safeItems.length > 0 ? (safeItems[0].hsnCode || safeItems[0].HSN_SAC || '998312') : '998312',
-        quantity: 1,
-        rate: safeItems.length > 0 ? parseFloat(safeItems[0].rate || 0) : 0,
-        amount: safeItems.length > 0 ? parseFloat(safeItems[0].rate || 0) : 0,
-      },
-    ],
+    terms: initialInvoice
+      ? (initialInvoice.terms || initialInvoice.TermsAndConditions || 'Payment due on receipt. Thank you for your business.')
+      : 'Payment due on receipt. Thank you for your business.',
+    discountAmount: initialInvoice ? parseFloat(initialInvoice.discountAmount || 0) : 0,
+    items: initItems,
   });
-  const [useCustomCustomer, setUseCustomCustomer] = useState(safeCustomers.length === 0);
+  const [useCustomCustomer, setUseCustomCustomer] = useState(safeCustomers.length === 0 && !initCust);
   const [loading, setLoading] = useState(false);
 
   const selectedCustomer = safeCustomers.find(
@@ -36,12 +55,14 @@ const InvoiceCreateForm = ({ customers = [], items = [], onInvoiceCreated, onCan
     const updated = [...formData.items];
     const rate = selected ? parseFloat(selected.rate || 0) : updated[index].rate || 0;
     const qty = updated[index].quantity || 1;
+    const unit = selected ? (selected.unit || selected.Unit || 'Unit') : (updated[index].unit || 'Unit');
 
     updated[index] = {
       ...updated[index],
       item: itemName,
       description: selected ? (selected.description || '') : updated[index].description,
       hsnCode: selected ? (selected.hsnCode || selected.HSN_SAC || '998312') : updated[index].hsnCode,
+      unit: unit,
       rate: rate,
       amount: rate * qty,
     };
@@ -62,7 +83,7 @@ const InvoiceCreateForm = ({ customers = [], items = [], onInvoiceCreated, onCan
   };
 
   const addItemRow = () => {
-    const firstItem = items[0] || {};
+    const firstItem = safeItems[0] || {};
     setFormData((prev) => ({
       ...prev,
       items: [
@@ -71,6 +92,7 @@ const InvoiceCreateForm = ({ customers = [], items = [], onInvoiceCreated, onCan
           item: firstItem.name || firstItem.ItemName || '',
           description: '',
           hsnCode: firstItem.hsnCode || firstItem.HSN_SAC || '998312',
+          unit: firstItem.unit || firstItem.Unit || 'Unit',
           quantity: 1,
           rate: parseFloat(firstItem.rate || 0),
           amount: parseFloat(firstItem.rate || 0),
@@ -135,8 +157,12 @@ const InvoiceCreateForm = ({ customers = [], items = [], onInvoiceCreated, onCan
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Create New Invoice</h2>
-              <p className="text-xs text-slate-500">Auto-calculates grand total and generates sequential invoice ID</p>
+              <h2 className="text-xl font-bold text-slate-900">
+                {initialInvoice ? `Clone Invoice (${initialInvoice.name || initialInvoice.InvoiceNo})` : 'Create New Invoice'}
+              </h2>
+              <p className="text-xs text-slate-500">
+                {initialInvoice ? 'Duplicating items and customer details to new invoice' : 'Auto-calculates grand total and generates sequential invoice ID'}
+              </p>
             </div>
           </div>
           <button onClick={onCancel} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100">
@@ -267,7 +293,9 @@ const InvoiceCreateForm = ({ customers = [], items = [], onInvoiceCreated, onCan
                   </div>
 
                   <div className="md:col-span-2 space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Qty</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">
+                      Qty {row.unit ? `(${row.unit})` : ''}
+                    </label>
                     <input
                       type="number"
                       min="1"
@@ -279,7 +307,9 @@ const InvoiceCreateForm = ({ customers = [], items = [], onInvoiceCreated, onCan
                   </div>
 
                   <div className="md:col-span-2 space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Rate (₹)</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">
+                      Rate ({getCurrencySymbol(settings.currency)})
+                    </label>
                     <input
                       type="number"
                       step="any"
@@ -330,7 +360,7 @@ const InvoiceCreateForm = ({ customers = [], items = [], onInvoiceCreated, onCan
                 <span className="font-mono font-semibold">{formatINR(netTotal)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-600">Discount (₹):</span>
+                <span className="text-slate-600">Discount ({getCurrencySymbol(settings.currency)}):</span>
                 <input
                   type="number"
                   min="0"

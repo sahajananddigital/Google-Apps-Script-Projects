@@ -3,6 +3,7 @@ import { callGAS } from './GAS';
 import { syncOfflineData, getOfflineQueue } from './utils/offlineSync';
 import { getTerminology } from './utils/terminology';
 import { toSafeArray } from './utils/safeArray';
+import { setAppCurrency } from './utils/formatters';
 import Dashboard from './components/Dashboard';
 import InvoiceManager from './components/InvoiceManager';
 import PaymentManager from './components/PaymentManager';
@@ -100,7 +101,10 @@ const App = () => {
       if (setRes) {
         try {
           const parsed = typeof setRes === 'string' ? JSON.parse(setRes) : setRes;
-          if (parsed && typeof parsed === 'object') setSettings(parsed);
+          if (parsed && typeof parsed === 'object') {
+            setSettings(parsed);
+            if (parsed.currency) setAppCurrency(parsed.currency);
+          }
         } catch (e) {
           console.error('Error parsing settings:', e);
         }
@@ -122,7 +126,7 @@ const App = () => {
     return customers.find((c) => (c.name || c.CustomerName) === partyName) || null;
   };
 
-  const companyDisplayName = settings.companyName || (terminology.isInstitute ? 'Gurukul Academy' : 'Sahajanand Digital');
+  const companyDisplayName = settings.companyName || (terminology.isInstitute ? 'Educational Academy' : 'Digital Books');
 
   return (
     <div className="min-h-screen bg-slate-50 p-3 sm:p-5 md:p-8 font-sans text-slate-900">
@@ -399,6 +403,7 @@ const App = () => {
             <AccountingManager
               accounts={accounts}
               journalEntries={journalEntries}
+              settings={settings}
               onRefresh={loadAllData}
             />
           )}
@@ -425,6 +430,7 @@ const App = () => {
           {activeTab === 'services' && (
             <ItemCatalog
               items={items}
+              settings={settings}
               onItemAdded={loadAllData}
             />
           )}
@@ -432,7 +438,10 @@ const App = () => {
           {activeTab === 'settings' && (
             <SettingsManager
               settings={settings}
-              onSettingsSaved={(newSettings) => setSettings(newSettings)}
+              onSettingsSaved={(newSettings) => {
+                setSettings(newSettings);
+                if (newSettings.currency) setAppCurrency(newSettings.currency);
+              }}
               onOpenCustomizer={() => setActiveTab('template_customizer')}
             />
           )}

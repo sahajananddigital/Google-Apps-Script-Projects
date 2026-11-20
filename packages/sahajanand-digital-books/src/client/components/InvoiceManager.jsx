@@ -23,6 +23,7 @@ const InvoiceManager = ({
   const [statusFilter, setStatusFilter] = useState('All');
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [cloningInvoice, setCloningInvoice] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   // Status computation
@@ -204,7 +205,7 @@ const InvoiceManager = ({
                         {out > 0 ? (
                           <span className="text-amber-700 font-bold">{formatINR(out)}</span>
                         ) : (
-                          <span className="text-slate-400">₹0.00</span>
+                          <span className="text-slate-400">{formatINR(0)}</span>
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-center">
@@ -232,6 +233,20 @@ const InvoiceManager = ({
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                             View
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setCloningInvoice(inv);
+                              setIsCreating(true);
+                            }}
+                            className="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-[11px] font-bold transition-all flex items-center gap-1"
+                            title="Clone this Invoice"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                            </svg>
+                            Clone
                           </button>
 
                           {status !== 'Paid' && status !== 'Cancelled' && (
@@ -271,16 +286,22 @@ const InvoiceManager = ({
         />
       )}
 
-      {/* Create Invoice Form Modal */}
+      {/* Create / Clone Invoice Form Modal */}
       {isCreating && (
         <InvoiceCreateForm
           customers={customers}
           items={items}
+          settings={settings}
+          initialInvoice={cloningInvoice}
           onInvoiceCreated={(newInvNo) => {
             setIsCreating(false);
+            setCloningInvoice(null);
             if (onRefresh) onRefresh();
           }}
-          onCancel={() => setIsCreating(false)}
+          onCancel={() => {
+            setIsCreating(false);
+            setCloningInvoice(null);
+          }}
         />
       )}
     </div>

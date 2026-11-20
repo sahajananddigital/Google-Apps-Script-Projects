@@ -1,4 +1,37 @@
-import { getSheet, SHEETS, getRowsAsObjects } from './db.js';
+import { getSheet, getSpreadsheet, SHEETS, getRowsAsObjects } from './db.js';
+
+/**
+ * Synchronize Column 12 (OutstandingAmount) of the Customers sheet with actual live invoice balances
+ */
+export const syncCustomerOutstanding = () => {
+  const ss = getSpreadsheet();
+  if (!ss) return { success: false, message: 'Spreadsheet not found' };
+
+  const custSheet = ss.getSheetByName(SHEETS.CUSTOMERS);
+  const invSheet = ss.getSheetByName(SHEETS.INVOICES);
+  if (!custSheet || !invSheet) return { success: false, message: 'Sheets missing' };
+
+  // Calculate live outstanding due per customer from non-cancelled invoices
+  const invRows = invSheet.getDataRange().getValues().slice(1);
+  const customerDue = {};
+  invRows.forEach((row) => {
+    const cust = row[2];
+    const out = parseFloat(row[7]) || 0;
+    const status = row[8];
+    if (cust && status !== 'Cancelled' && out > 0) {
+      customerDue[cust] = (customerDue[cust] || 0) + out;
+    }
+  });
+
+  const custData = custSheet.getDataRange().getValues();
+  for (let i = 1; i < custData.length; i++) {
+    const custName = custData[i][0];
+    const liveDue = customerDue[custName] || 0;
+    custSheet.getRange(i + 1, 12).setValue(liveDue);
+  }
+
+  return { success: true, customerDue };
+};
 
 /**
  * Get all customers

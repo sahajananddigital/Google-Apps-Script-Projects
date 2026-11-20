@@ -69,9 +69,9 @@ test('toSafeArray utility safeguards', async (t) => {
 
   await t.test('safely formats and slices numeric account numbers from Google Sheets', () => {
     const rawAccountNumbers = [
-      77770117398715,
+      98765432109876,
       123456789012,
-      '60853 1837 108 915',
+      '11223 3445 566 777',
       null,
       undefined,
       0,

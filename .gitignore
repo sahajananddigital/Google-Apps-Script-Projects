@@ -4,3 +4,6 @@ node_modules
 .DS_Store
 *.db
 *.books.db
+*.xlsx
+migration_csvs/
+

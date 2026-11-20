@@ -54,11 +54,40 @@ const BankBalanceWidget = ({ payments = [], expenses = [], journalEntries = [], 
     safeAccounts.forEach((a) => {
       if (!a) return;
       const name = a.name || a.AccountName;
+      const root = String(a.rootType || a.RootType || '').toLowerCase();
       const type = String(a.accountType || a.AccountType || '').toLowerCase();
       const parent = String(a.parentAccount || a.ParentAccount || '').toLowerCase();
+      const nameStr = String(name || '');
+      const nameLower = nameStr.toLowerCase();
+      const isGroup = a.isGroup === true || a.isGroup === 1 || a.isGroup === '1' || a.IsGroup === true || a.IsGroup === 1 || a.IsGroup === '1';
 
-      if (!a.isGroup && (type === 'bank' || type === 'cash' || parent.includes('bank') || parent.includes('cash'))) {
-        if (name && !addedNames.has(name)) {
+      // Strict exclusion for expenses, charges, fees, liabilities, income, equity
+      const isExpenseOrCharge =
+        root === 'expense' ||
+        root === 'liability' ||
+        root === 'income' ||
+        root === 'equity' ||
+        parent.includes('charge') ||
+        parent.includes('fee') ||
+        parent.includes('expense') ||
+        parent.includes('indirect') ||
+        parent.includes('direct') ||
+        nameLower.includes('charge') ||
+        nameLower.includes('fee');
+
+      const isAsset = root === 'asset' || (!root && (type === 'bank' || type === 'cash'));
+
+      if (!isGroup && isAsset && !isExpenseOrCharge) {
+        const isBankOrCash =
+          type === 'bank' ||
+          type === 'cash' ||
+          parent === 'bank accounts' ||
+          parent === 'cash in hand' ||
+          parent.includes('bank account') ||
+          parent.includes('cash in hand') ||
+          ((parent === 'current assets' || parent === 'assets' || !parent) && (nameLower.includes('bank') || nameLower.includes('cash')));
+
+        if (isBankOrCash && name && !addedNames.has(name)) {
           list.push({
             id: `acc-${name}`,
             name: name,
@@ -66,7 +95,7 @@ const BankBalanceWidget = ({ payments = [], expenses = [], journalEntries = [], 
             accountNo: '',
             ifsc: '',
             upi: '',
-            type: type === 'cash' ? 'Cash Account' : 'Bank Account',
+            type: (type === 'cash' || nameLower.includes('cash')) ? 'Cash Account' : 'Bank Account',
             gradient: GRADIENTS[list.length % GRADIENTS.length],
           });
           addedNames.add(name);
@@ -91,11 +120,50 @@ const BankBalanceWidget = ({ payments = [], expenses = [], journalEntries = [], 
     return list;
   }, [safeAccounts, settings]);
 
+  // Set of known expense categories/accounts to prevent double-counting in bank calculation
+  const expenseAccountSet = useMemo(() => {
+    const set = new Set();
+    safeExpenses.forEach((e) => {
+      const cat = String(e.category || e.Category || '').toLowerCase();
+      if (cat) set.add(cat);
+    });
+    safeAccounts.forEach((a) => {
+      const rootType = String(a.rootType || a.RootType || '').toLowerCase();
+      const name = String(a.name || a.AccountName || '').toLowerCase();
+      if (rootType === 'expense' && name) set.add(name);
+    });
+    return set;
+  }, [safeExpenses, safeAccounts]);
+
   const calculateBalance = (accountName) => {
-    let balance = 0;
     const nameLower = String(accountName || '').toLowerCase();
 
-    // Inflow from payments
+    // 1. Direct General Ledger calculation from JournalLedgers
+    // Matches Frappe Books Balance Sheet to the exact paisa
+    let ledgerDebit = 0;
+    let ledgerCredit = 0;
+    let ledgerCount = 0;
+
+    safeJournalEntries.forEach((jv) => {
+      if (!jv) return;
+      const splits = Array.isArray(jv.splits) ? jv.splits : [];
+      splits.forEach((s) => {
+        if (!s) return;
+        const acc = String(s.account || s.AccountName || '').toLowerCase();
+        if (acc === nameLower || acc.includes(nameLower) || nameLower.includes(acc)) {
+          ledgerDebit += parseFloat(s.debit || s.Debit || 0);
+          ledgerCredit += parseFloat(s.credit || s.Credit || 0);
+          ledgerCount++;
+        }
+      });
+    });
+
+    if (ledgerCount > 0) {
+      return ledgerDebit - ledgerCredit;
+    }
+
+    // 2. Fallback calculation if ledger entries are not yet loaded:
+    let balance = 0;
     safePayments.forEach((p) => {
       if (!p) return;
       const acc = String(p.paymentAccount || p.account || p.Account || '').toLowerCase();
@@ -104,26 +172,12 @@ const BankBalanceWidget = ({ payments = [], expenses = [], journalEntries = [], 
       }
     });
 
-    // Outflow from expenses
     safeExpenses.forEach((e) => {
       if (!e) return;
       const acc = String(e.paidVia || e.PaidVia || '').toLowerCase();
       if (acc === nameLower || acc.includes(nameLower) || nameLower.includes(acc)) {
         balance -= parseFloat(e.amount || e.Amount || 0);
       }
-    });
-
-    // Flow from Journal Entries
-    safeJournalEntries.forEach((jv) => {
-      if (!jv) return;
-      const splits = Array.isArray(jv.splits) ? jv.splits : [];
-      splits.forEach((s) => {
-        if (!s) return;
-        const acc = String(s.account || s.AccountName || '').toLowerCase();
-        if (acc === nameLower || acc.includes(nameLower) || nameLower.includes(acc)) {
-          balance += parseFloat(s.debit || s.Debit || 0) - parseFloat(s.credit || s.Credit || 0);
-        }
-      });
     });
 
     return balance;
@@ -145,7 +199,7 @@ const BankBalanceWidget = ({ payments = [], expenses = [], journalEntries = [], 
         </div>
         <div className="text-right">
           <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Liquidity:</span>
-          <p className="text-lg font-black text-slate-900 font-mono">{formatINR(totalLiquidity)}</p>
+          <p className="text-lg font-black text-slate-900 font-mono">{formatINR(totalLiquidity, settings.currency)}</p>
         </div>
       </div>
 
@@ -179,7 +233,7 @@ const BankBalanceWidget = ({ payments = [], expenses = [], journalEntries = [], 
                 <div>
                   <p className="text-[9px] uppercase tracking-wider text-white/70">Available Balance</p>
                   <p className="text-xl font-black font-mono tracking-tight text-white">
-                    {formatINR(bal)}
+                    {formatINR(bal, settings.currency)}
                   </p>
                 </div>
                 {Boolean(acc.accountNo) && (

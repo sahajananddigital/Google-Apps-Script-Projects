@@ -1,4 +1,4 @@
-import { formatINR, formatDate, numberToWordsINR } from '../utils/formatters';
+import { formatINR, formatDate, numberToWordsINR, amountToWords } from '../utils/formatters';
 import { getUpiQrCodeUrl } from '../utils/upi';
 import { replaceMarkers, buildInvoiceMarkerContext } from '../utils/markerEngine';
 import { toSafeArray } from '../utils/safeArray';
@@ -166,7 +166,12 @@ const ModernStyleInvoice = ({ invoice, customer, settings = {}, templateVariant 
                   )}
                 </td>
                 <td className="py-2 px-2 text-center font-mono text-slate-600">{row.hsnCode || row.HSN_SAC || '998312'}</td>
-                <td className="py-2 px-2 text-center font-semibold">{row.quantity || row.Quantity || 1}</td>
+                <td className="py-2 px-2 text-center font-semibold">
+                  {row.quantity || row.Quantity || 1}
+                  {(row.unit || row.Unit) && (
+                    <span className="text-[10px] text-slate-500 font-normal block">({row.unit || row.Unit})</span>
+                  )}
+                </td>
                 <td className="py-2 px-2 text-right font-mono">{formatINR(row.rate || row.Rate || 0)}</td>
                 <td className="py-2 px-2 text-right font-bold font-mono text-slate-900">{formatINR(row.amount || row.Amount || 0)}</td>
               </tr>
@@ -179,7 +184,7 @@ const ModernStyleInvoice = ({ invoice, customer, settings = {}, templateVariant 
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-5">
         <div className="flex-1 text-[11px] text-slate-600">
           <p className="font-semibold text-slate-800">Amount in Words:</p>
-          <p className="italic text-slate-700">{numberToWordsINR(grandTotal)}</p>
+          <p className="italic text-slate-700">{amountToWords(grandTotal, settings?.currency)}</p>
         </div>
 
         <div className="w-64 bg-slate-50 rounded-xl p-3 border border-slate-100 space-y-1.5 text-xs">

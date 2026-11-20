@@ -1,4 +1,6 @@
-import { SHEETS, getSpreadsheet, getSheet, initDatabase } from './db.js';
+import { SHEETS, SHEET_SCHEMAS, getSpreadsheet, getSheet, initDatabase } from './db.js';
+import { syncExpensesFromJournalLedgers } from './expense.js';
+import { syncCustomerOutstanding } from './customer.js';
 
 /**
  * Convert column letter (A, B, ..., Z, AA, AB) to 0-based index
@@ -294,5 +296,33 @@ export const resetDatabase = () => {
     return { success: true, message: 'All tables cleared and default configuration reset.' };
   } catch (e) {
     return { success: false, message: e.toString() };
+  }
+};
+
+/**
+ * Initialize clean database schema and default configuration
+ */
+export const importDefaultSeedData = (clearExisting = true) => {
+  try {
+    if (clearExisting) {
+      resetDatabase();
+    } else {
+      initDatabase();
+    }
+    return {
+      success: true,
+      message: 'Database schema and default configurations initialized successfully.',
+      importedCounts: {
+        Invoices: 0,
+        InvoiceItems: 0,
+        Payments: 0,
+        Expenses: 0,
+        ChartOfAccounts: 0,
+        Customers: 0,
+        Items: 0,
+      },
+    };
+  } catch (err) {
+    return { success: false, message: err.toString() };
   }
 };

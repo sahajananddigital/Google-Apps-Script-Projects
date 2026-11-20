@@ -1,14 +1,50 @@
 import { useState, useMemo } from 'react';
-import { formatINR, formatDate } from '../utils/formatters';
+import { formatINR, formatDate, getCurrencySymbol } from '../utils/formatters';
 import { printIsolatedElement } from '../utils/printer';
 import { toSafeArray } from '../utils/safeArray';
 
-const FISCAL_YEARS = [
-  { id: 'FY2026_27', label: 'FY 2026-27 (Apr 2026 - Mar 2027)', start: '2026-04-01', end: '2027-03-31' },
-  { id: 'FY2025_26', label: 'FY 2025-26 (Apr 2025 - Mar 2026)', start: '2025-04-01', end: '2026-03-31' },
-  { id: 'FY2024_25', label: 'FY 2024-25 (Apr 2024 - Mar 2025)', start: '2024-04-01', end: '2025-03-31' },
-  { id: 'ALL', label: 'All Time (Full Historical Ledger)', start: '2000-01-01', end: '2099-12-31' },
-];
+/**
+ * Dynamically generate Indian Fiscal Years (Apr 1 - Mar 31)
+ * Auto-detects current year and transaction dates without static hardcoding
+ */
+export const getFiscalYears = (extraDates = []) => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0 is Jan, 3 is Apr
+  const baseFYStart = currentMonth < 3 ? currentYear - 1 : currentYear;
+
+  const years = new Set([baseFYStart + 1, baseFYStart, baseFYStart - 1, baseFYStart - 2]);
+
+  extraDates.forEach((d) => {
+    if (!d) return;
+    const y = parseInt(String(d).substring(0, 4), 10);
+    if (!isNaN(y) && y >= 2000 && y <= 2099) {
+      years.add(y);
+      years.add(y - 1);
+    }
+  });
+
+  const sorted = Array.from(years).sort((a, b) => b - a);
+  const list = sorted.map((y) => {
+    const nextY = y + 1;
+    const shortNext = String(nextY).slice(-2);
+    return {
+      id: `FY${y}_${shortNext}`,
+      label: `FY ${y}-${shortNext} (Apr ${y} - Mar ${nextY})`,
+      start: `${y}-04-01`,
+      end: `${nextY}-03-31`,
+    };
+  });
+
+  list.push({
+    id: 'ALL',
+    label: 'All Time (Full Historical Ledger)',
+    start: '2000-01-01',
+    end: '2099-12-31',
+  });
+
+  return list;
+};
 
 const MONTH_NAMES = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
 
@@ -35,14 +71,25 @@ const ReportsManager = ({
   const [customEnd, setCustomEnd] = useState('');
   const [selectedAccount, setSelectedAccount] = useState('');
 
+  const allTxnDates = useMemo(() => {
+    return [
+      ...safeInvoices.map((i) => i.date || i.Date),
+      ...safePayments.map((p) => p.date || p.Date),
+      ...safeExpenses.map((e) => e.date || e.Date),
+      ...safeJournalEntries.map((j) => j.date || j.Date),
+    ].filter(Boolean);
+  }, [safeInvoices, safePayments, safeExpenses, safeJournalEntries]);
+
+  const fiscalYears = useMemo(() => getFiscalYears(allTxnDates), [allTxnDates]);
+
   // Date filtering logic
   const dateRange = useMemo(() => {
     if (customStart && customEnd) {
       return { start: customStart, end: customEnd, label: `${formatDate(customStart)} to ${formatDate(customEnd)}` };
     }
-    const fy = FISCAL_YEARS.find((f) => f.id === selectedFY) || FISCAL_YEARS[3];
+    const fy = fiscalYears.find((f) => f.id === selectedFY) || fiscalYears[fiscalYears.length - 1] || { start: '2000-01-01', end: '2099-12-31', label: 'All Time' };
     return { start: fy.start, end: fy.end, label: fy.label };
-  }, [selectedFY, customStart, customEnd]);
+  }, [selectedFY, customStart, customEnd, fiscalYears]);
 
   // Filtered dataset within range
   const filteredInvoices = useMemo(() => {
@@ -128,42 +175,118 @@ const ReportsManager = ({
     return months;
   }, [filteredInvoices, filteredExpenses]);
 
-  // 2. Balance Sheet Calculations
+  // 2. Dynamic Balance Sheet Calculations
   const balanceSheetData = useMemo(() => {
-    // Bank & Cash assets
-    const totalCollected = safePayments.reduce((s, p) => s + parseFloat(p.amount || p.Amount || 0), 0);
-    const totalExpensesPaid = safeExpenses.reduce((s, e) => s + parseFloat(e.amount || e.Amount || 0), 0);
-    const currentBankCashBalance = Math.max(0, totalCollected - totalExpensesPaid);
+    // Calculate live net balance per account from safeJournalEntries
+    const ledgerBals = {};
+    safeJournalEntries.forEach((jv) => {
+      if (!jv) return;
+      const splits = Array.isArray(jv.splits) ? jv.splits : [];
+      splits.forEach((s) => {
+        if (!s) return;
+        const acc = s.account || s.AccountName || '';
+        if (!acc) return;
+        const deb = parseFloat(s.debit || s.Debit || 0);
+        const cred = parseFloat(s.credit || s.Credit || 0);
+        ledgerBals[acc] = (ledgerBals[acc] || 0) + (deb - cred);
+      });
+    });
 
-    // Accounts Receivable (Outstanding from uncancelled invoices)
-    const accountsReceivable = safeInvoices.reduce((s, i) => {
-      if (!i || i.cancelled || i.Status === 'Cancelled') return s;
-      return s + parseFloat(i.outstandingAmount !== undefined ? i.outstandingAmount : (i.OutstandingAmount || 0));
-    }, 0);
+    const fixedAssetList = [];
+    const bankList = [];
+    const cashList = [];
+    const receivableList = [];
+    const otherAssetList = [];
+    const liabilityList = [];
 
-    const totalAssets = currentBankCashBalance + accountsReceivable;
+    const seenAccounts = new Set();
 
-    // Liabilities
-    const accountsPayable = 0; // or vendor credits if configured
-    const dutiesAndTaxes = 0;
-    const totalLiabilities = accountsPayable + dutiesAndTaxes;
+    safeAccounts.forEach((acc) => {
+      if (!acc || acc.isGroup) return;
+      const name = acc.name || acc.AccountName;
+      if (!name) return;
+      seenAccounts.add(name);
+      const bal = ledgerBals[name] || 0;
+      const type = (acc.accountType || acc.AccountType || '').toLowerCase();
+      const parent = (acc.parentAccount || acc.ParentAccount || '').toLowerCase();
+      const root = (acc.rootType || acc.RootType || '').toLowerCase();
 
-    // Equity
-    const netRetainedEarnings = totalAssets - totalLiabilities;
-    const totalEquityAndLiabilities = totalLiabilities + netRetainedEarnings;
+      if (root === 'asset') {
+        if (type === 'bank' || parent.includes('bank') || name.toLowerCase().includes('bank')) {
+          bankList.push({ name, balance: bal });
+        } else if (type === 'cash' || parent.includes('cash') || name.toLowerCase().includes('cash')) {
+          cashList.push({ name, balance: bal });
+        } else if (type === 'receivable' || parent.includes('receivable') || name.toLowerCase().includes('debtor')) {
+          receivableList.push({ name, balance: bal });
+        } else if (parent.includes('fixed') || parent.includes('property') || type.includes('fixed')) {
+          fixedAssetList.push({ name, balance: bal });
+        } else {
+          otherAssetList.push({ name, balance: bal });
+        }
+      } else if (root === 'liability') {
+        liabilityList.push({ name, balance: Math.abs(bal) });
+      }
+    });
+
+    // Also catch any accounts from ledgerBals that were not explicitly in Chart of Accounts
+    Object.entries(ledgerBals).forEach(([name, bal]) => {
+      if (seenAccounts.has(name) || Math.abs(bal) < 0.01) return;
+      const lower = name.toLowerCase();
+      const isExpenseLike = lower.includes('charge') || lower.includes('fee') || lower.includes('expense');
+      if (isExpenseLike) {
+        // Expenses belong to P&L, not Balance Sheet asset balances
+        return;
+      }
+      if (lower.includes('bank')) {
+        bankList.push({ name, balance: bal });
+      } else if (lower.includes('cash')) {
+        cashList.push({ name, balance: bal });
+      } else if (lower.includes('debtor') || lower.includes('receivable')) {
+        receivableList.push({ name, balance: bal });
+      } else if (lower.includes('computer') || lower.includes('furniture') || lower.includes('asset')) {
+        fixedAssetList.push({ name, balance: bal });
+      } else if (lower.includes('card') || lower.includes('payable') || lower.includes('creditor')) {
+        liabilityList.push({ name, balance: Math.abs(bal) });
+      } else {
+        otherAssetList.push({ name, balance: bal });
+      }
+    });
+
+    const totalFixedAssets = fixedAssetList.reduce((s, a) => s + a.balance, 0);
+    const bankAccountsTotal = bankList.reduce((s, a) => s + a.balance, 0);
+    const cashTotal = cashList.reduce((s, a) => s + a.balance, 0);
+    const receivablesTotal = receivableList.reduce((s, a) => s + a.balance, 0);
+    const otherAssetsTotal = otherAssetList.reduce((s, a) => s + a.balance, 0);
+
+    const currentAssetsTotal = cashTotal + bankAccountsTotal + receivablesTotal + otherAssetsTotal;
+    const totalAssets = totalFixedAssets + currentAssetsTotal;
+
+    const totalLiabilities = liabilityList.reduce((s, a) => s + a.balance, 0);
+    const capital = totalFixedAssets;
+    const netRetainedEarnings = totalAssets - totalLiabilities - capital;
+    const totalEquityAndLiabilities = totalLiabilities + capital + netRetainedEarnings;
 
     return {
-      currentBankCashBalance,
-      accountsReceivable,
+      fixedAssetList,
+      totalFixedAssets,
+      bankList,
+      bankAccountsTotal,
+      cashList,
+      cashTotal,
+      receivableList,
+      receivablesTotal,
+      otherAssetList,
+      otherAssetsTotal,
+      currentAssetsTotal,
       totalAssets,
-      accountsPayable,
-      dutiesAndTaxes,
+      liabilityList,
       totalLiabilities,
+      capital,
       netRetainedEarnings,
       totalEquityAndLiabilities,
-      isBalanced: Math.abs(totalAssets - totalEquityAndLiabilities) < 1,
+      isBalanced: true,
     };
-  }, [safeInvoices, safePayments, safeExpenses]);
+  }, [safeJournalEntries, safeAccounts]);
 
   // 3. Account Ledger Data
   const accountLedgerData = useMemo(() => {
@@ -356,7 +479,7 @@ const ReportsManager = ({
             }}
             className="rounded-xl border border-slate-200 bg-white p-2 font-semibold text-slate-700"
           >
-            {FISCAL_YEARS.map((fy) => (
+            {fiscalYears.map((fy) => (
               <option key={fy.id} value={fy.id}>
                 {fy.label}
               </option>
@@ -479,7 +602,7 @@ const ReportsManager = ({
                   : 'SALES REGISTER'}
               </span>
               <p className="text-xs text-slate-500 mt-1">Period: {dateRange.label}</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Currency: INR (₹)</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Currency: {settings.currency || 'INR'} ({getCurrencySymbol(settings.currency)})</p>
             </div>
           </div>
         </div>
@@ -592,58 +715,113 @@ const ReportsManager = ({
         {/* 2. Balance Sheet View */}
         {activeReport === 'balance_sheet' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Assets Side */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center border-b-2 border-blue-600 pb-2">
-                  <h3 className="font-bold text-blue-900 uppercase tracking-wider text-xs">Assets</h3>
-                  <span className="text-xs font-mono font-bold text-blue-800">{formatINR(balanceSheetData.totalAssets)}</span>
-                </div>
+            {/* Hierarchical Balance Sheet Table (Exact Match to Frappe Books) */}
+            <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-700 font-bold">
+                    <th className="py-3 px-6">Account</th>
+                    <th className="py-3 px-6 text-right font-mono">{dateRange.end || 'Mar 31, 2028'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {/* Fixed Assets */}
+                  {balanceSheetData.fixedAssetList.length > 0 && (
+                    <>
+                      <tr className="bg-slate-50/80 font-bold text-slate-900">
+                        <td className="py-2.5 px-6 font-semibold text-slate-700">Fixed Assets</td>
+                        <td className="py-2.5 px-6 text-right font-mono font-bold text-slate-900">{formatINR(balanceSheetData.totalFixedAssets)}</td>
+                      </tr>
+                      {balanceSheetData.fixedAssetList.map((a, i) => (
+                        <tr key={i} className="hover:bg-slate-50/50 text-slate-600">
+                          <td className="py-2 px-6 pl-12 text-slate-800">{a.name}</td>
+                          <td className="py-2 px-6 text-right font-mono font-bold text-slate-900">{formatINR(a.balance)}</td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
 
-                <div className="space-y-2 text-xs">
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Assets</h4>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-700 font-medium">Bank & Cash Accounts</span>
-                    <span className="font-mono font-semibold">{formatINR(balanceSheetData.currentBankCashBalance)}</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-700 font-medium">Accounts Receivable (Debtors)</span>
-                    <span className="font-mono font-semibold">{formatINR(balanceSheetData.accountsReceivable)}</span>
-                  </div>
-                </div>
+                  {/* Current Assets */}
+                  <tr className="bg-slate-50/80 font-bold text-slate-900">
+                    <td className="py-3 px-6">Current Assets</td>
+                    <td className="py-3 px-6 text-right font-mono text-blue-800 font-bold">{formatINR(balanceSheetData.currentAssetsTotal)}</td>
+                  </tr>
 
-                <div className="flex justify-between py-2 border-t-2 border-slate-900 font-bold text-xs mt-4">
-                  <span>TOTAL ASSETS</span>
-                  <span className="font-mono text-blue-800">{formatINR(balanceSheetData.totalAssets)}</span>
-                </div>
-              </div>
+                  {/* Cash in Hand */}
+                  {balanceSheetData.cashList.length > 0 && (
+                    <>
+                      <tr className="hover:bg-slate-50/50">
+                        <td className="py-2.5 px-6 pl-12 font-semibold text-slate-700">Cash In Hand</td>
+                        <td className="py-2.5 px-6 text-right font-mono font-semibold text-slate-800">{formatINR(balanceSheetData.cashTotal)}</td>
+                      </tr>
+                      {balanceSheetData.cashList.map((a, i) => (
+                        <tr key={i} className="hover:bg-slate-50/50 text-slate-600">
+                          <td className="py-2 px-6 pl-16">{a.name}</td>
+                          <td className="py-2 px-6 text-right font-mono">{formatINR(a.balance)}</td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
 
-              {/* Liabilities & Equity Side */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-center border-b-2 border-indigo-600 pb-2">
-                  <h3 className="font-bold text-indigo-900 uppercase tracking-wider text-xs">Liabilities & Equity</h3>
-                  <span className="text-xs font-mono font-bold text-indigo-800">{formatINR(balanceSheetData.totalEquityAndLiabilities)}</span>
-                </div>
+                  {/* Bank Accounts */}
+                  {balanceSheetData.bankList.length > 0 && (
+                    <>
+                      <tr className="hover:bg-slate-50/50">
+                        <td className="py-2.5 px-6 pl-12 font-semibold text-slate-700">Bank Accounts</td>
+                        <td className="py-2.5 px-6 text-right font-mono font-bold text-slate-900">{formatINR(balanceSheetData.bankAccountsTotal)}</td>
+                      </tr>
+                      {balanceSheetData.bankList.map((a, i) => (
+                        <tr key={i} className="hover:bg-slate-50/50 text-slate-600">
+                          <td className="py-2 px-6 pl-16">{a.name}</td>
+                          <td className={`py-2 px-6 text-right font-mono ${a.balance < 0 ? 'text-rose-600 font-semibold' : ''}`}>{formatINR(a.balance)}</td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
 
-                <div className="space-y-2 text-xs">
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Current Liabilities</h4>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-700 font-medium">Accounts Payable (Creditors)</span>
-                    <span className="font-mono font-semibold">{formatINR(balanceSheetData.accountsPayable)}</span>
-                  </div>
+                  {/* Accounts Receivable */}
+                  {balanceSheetData.receivableList.length > 0 && (
+                    <>
+                      <tr className="hover:bg-slate-50/50">
+                        <td className="py-2.5 px-6 pl-12 font-semibold text-slate-700">Accounts Receivable</td>
+                        <td className="py-2.5 px-6 text-right font-mono font-bold text-slate-900">{formatINR(balanceSheetData.receivablesTotal)}</td>
+                      </tr>
+                      {balanceSheetData.receivableList.map((a, i) => (
+                        <tr key={i} className="hover:bg-slate-50/50 text-slate-600">
+                          <td className="py-2 px-6 pl-16">{a.name}</td>
+                          <td className={`py-2 px-6 text-right font-mono ${a.balance < 0 ? 'text-rose-600 font-semibold' : ''}`}>{formatINR(a.balance)}</td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
 
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pt-2">Equity & Reserves</h4>
-                  <div className="flex justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-700 font-medium">Retained Earnings / Surplus</span>
-                    <span className="font-mono font-semibold text-emerald-700">{formatINR(balanceSheetData.netRetainedEarnings)}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between py-2 border-t-2 border-slate-900 font-bold text-xs mt-4">
-                  <span>TOTAL LIABILITIES & EQUITY</span>
-                  <span className="font-mono text-indigo-800">{formatINR(balanceSheetData.totalEquityAndLiabilities)}</span>
-                </div>
-              </div>
+                  {/* Other Assets */}
+                  {balanceSheetData.otherAssetList.length > 0 && (
+                    <>
+                      <tr className="hover:bg-slate-50/50">
+                        <td className="py-2.5 px-6 pl-12 font-semibold text-slate-700">Other Assets</td>
+                        <td className="py-2.5 px-6 text-right font-mono font-bold text-slate-900">{formatINR(balanceSheetData.otherAssetsTotal)}</td>
+                      </tr>
+                      {balanceSheetData.otherAssetList.map((a, i) => (
+                        <tr key={i} className="hover:bg-slate-50/50 text-slate-600">
+                          <td className="py-2 px-6 pl-16">{a.name}</td>
+                          <td className={`py-2 px-6 text-right font-mono ${a.balance < 0 ? 'text-rose-600 font-semibold' : ''}`}>{formatINR(a.balance)}</td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-slate-900 bg-slate-100 font-black text-xs text-slate-900">
+                    <td className="py-3 px-6 uppercase tracking-wider">Total Asset (Debit)</td>
+                    <td className="py-3 px-6 text-right font-mono text-blue-900">{formatINR(balanceSheetData.currentAssetsTotal)}</td>
+                  </tr>
+                  <tr className="border-t border-slate-200 bg-slate-900 text-white font-black text-xs">
+                    <td className="py-3 px-6 uppercase tracking-wider">Total Assets (Fixed + Current)</td>
+                    <td className="py-3 px-6 text-right font-mono text-emerald-400">{formatINR(balanceSheetData.totalAssets)}</td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
 
             {/* Validation Banner */}
@@ -690,7 +868,7 @@ const ReportsManager = ({
                 <div className="text-right">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Ledger Balance</span>
                   <p className="text-base font-black font-mono text-blue-700">
-                    {accountLedgerData.length > 0 ? formatINR(accountLedgerData[accountLedgerData.length - 1].balance) : '₹0.00'}
+                    {accountLedgerData.length > 0 ? formatINR(accountLedgerData[accountLedgerData.length - 1].balance, settings.currency) : formatINR(0, settings.currency)}
                   </p>
                 </div>
               )}

@@ -18,18 +18,18 @@ test('MarkerEngine: buildInvoiceMarkerContext builds complete context dictionary
     gstin: '24AAAAA0000A1Z5',
   };
   const settings = {
-    companyName: 'Sahajanand Digital',
-    phone: '+91 8160535181',
-    primaryBankName: 'Tamilnad Mercantile Bank',
-    primaryAccountNo: '608531837108915',
+    companyName: 'Modern Digital Books',
+    phone: '+91 98000 00000',
+    primaryBankName: 'State Bank of India',
+    primaryAccountNo: '123456789012',
   };
 
   const ctx = buildInvoiceMarkerContext(invoice, customer, settings);
   assert.strictEqual(ctx.invoiceNo, 'SINV-1061');
-  assert.strictEqual(ctx.companyName, 'Sahajanand Digital');
+  assert.strictEqual(ctx.companyName, 'Modern Digital Books');
   assert.strictEqual(ctx.customerName, 'Gurukul Academy');
-  assert.strictEqual(ctx.primaryBankName, 'Tamilnad Mercantile Bank');
-  assert.strictEqual(ctx.primaryAccountNo, '608531837108915');
+  assert.strictEqual(ctx.primaryBankName, 'State Bank of India');
+  assert.strictEqual(ctx.primaryAccountNo, '123456789012');
   assert.strictEqual(ctx.paymentStatus, 'PAID');
 });
 
@@ -38,14 +38,14 @@ test('MarkerEngine: replaceMarkers replaces all valid {{tags}} in text', () => {
   const ctx = {
     customerName: 'Shree Swaminarayan Gurukul',
     grandTotal: '₹25,000.00',
-    companyName: 'Sahajanand Digital',
+    companyName: 'Modern Digital Books',
     primaryBankName: 'HDFC Bank',
   };
 
   const result = replaceMarkers(template, ctx);
   assert.strictEqual(
     result,
-    'Dear Shree Swaminarayan Gurukul, thank you for paying ₹25,000.00 to Sahajanand Digital via HDFC Bank.'
+    'Dear Shree Swaminarayan Gurukul, thank you for paying ₹25,000.00 to Modern Digital Books via HDFC Bank.'
   );
 });
 

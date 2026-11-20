@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { callGAS } from '../GAS';
 import TallyStyleInvoice from '../templates/TallyStyleInvoice';
 import ModernStyleInvoice from '../templates/ModernStyleInvoice';
+import EducationFeeReceipt from '../templates/EducationFeeReceipt';
+import EducationPartialFeeReceipt from '../templates/EducationPartialFeeReceipt';
 import { printIsolatedElement } from '../utils/printer';
 import { AVAILABLE_MARKERS } from '../utils/markerEngine';
 
@@ -185,11 +187,13 @@ const TemplateCustomizer = ({ settings = {}, onSettingsSaved, onBack }) => {
 
             <div className="space-y-1">
               <label className="text-[11px] font-bold text-slate-600">Base Invoice Layout</label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
+                  { id: 'EducationFeeReceipt', label: '🎓 Fee Receipt' },
+                  { id: 'EducationPartialFeeReceipt', label: '💳 Partial Receipt' },
                   { id: 'IndianStyleTally', label: 'Indian Tally' },
-                  { id: 'TamilnadMercantileBank', label: 'Modern Bank 1' },
-                  { id: 'JupiterBank', label: 'Modern Bank 2' },
+                  { id: 'ModernProfessional', label: 'Modern (Primary)' },
+                  { id: 'ModernMinimalist', label: 'Modern (Secondary)' },
                 ].map((tpl) => (
                   <button
                     key={tpl.id}
@@ -415,14 +419,26 @@ const TemplateCustomizer = ({ settings = {}, onSettingsSaved, onBack }) => {
           </div>
 
           <div className="bg-slate-100 p-2 sm:p-4 rounded-2xl border border-slate-200 overflow-x-auto max-h-[85vh] overflow-y-auto shadow-inner">
-            <div className="bg-white rounded-xl shadow-lg mx-auto">
-              {activeTemplate === 'IndianStyleTally' ? (
+            <div className="bg-white rounded-xl shadow-lg mx-auto overflow-hidden">
+              {activeTemplate === 'EducationFeeReceipt' || activeTemplate === 'education_receipt' ? (
+                <EducationFeeReceipt
+                  invoice={SAMPLE_INVOICE}
+                  customer={SAMPLE_CUSTOMER}
+                  settings={previewSettings}
+                />
+              ) : activeTemplate === 'EducationPartialFeeReceipt' || activeTemplate === 'education_partial' ? (
+                <EducationPartialFeeReceipt
+                  invoice={SAMPLE_INVOICE}
+                  customer={SAMPLE_CUSTOMER}
+                  settings={previewSettings}
+                />
+              ) : activeTemplate === 'IndianStyleTally' ? (
                 <TallyStyleInvoice
                   invoice={SAMPLE_INVOICE}
                   customer={SAMPLE_CUSTOMER}
                   settings={previewSettings}
                 />
-              ) : activeTemplate === 'TamilnadMercantileBank' ? (
+              ) : activeTemplate === 'ModernProfessional' || activeTemplate === 'TamilnadMercantileBank' ? (
                 <ModernStyleInvoice
                   invoice={SAMPLE_INVOICE}
                   customer={SAMPLE_CUSTOMER}

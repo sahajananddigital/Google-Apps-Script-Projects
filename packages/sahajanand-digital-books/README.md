@@ -12,13 +12,13 @@ A full-featured accounting, invoicing, expense tracking, and ledger management s
 - **Payment Settlement**: Partial and full payments automatically deduct invoice balance and update status to `Paid`.
 
 ### 2. Print Templates & Live UPI QR Codes (Single-Page Fit)
-- **Indian Tally Style (Tax Invoice / Bill of Supply)**: Faithful 1:1 port of Frappe Books Tally template with outer border, two-column buyer/seller details, continuous vertical lines table, amount in words (`numberToWordsINR`), company bank details box, and dynamic UPI QR code generator (`upi://pay?pa=sahajananddigitalnikol@tmb...`).
-- **Modern Layouts**: Clean minimalist layouts supporting Tamilnad Mercantile Bank and Jupiter Bank variants.
+- **Indian Tally Style (Tax Invoice / Bill of Supply)**: Faithful 1:1 port of Frappe Books Tally template with outer border, two-column buyer/seller details, continuous vertical lines table, amount in words (`numberToWordsINR`), company bank details box, and dynamic UPI QR code generator (`upi://pay?pa=...`).
+- **Modern Layouts**: Clean minimalist layouts supporting Primary Bank and Secondary Bank variants.
 - **Strict 1-Page A4 Printing**: Optimized print CSS (`@media print`) isolating only `#invoice-print-area`, eliminating multi-page spills and blank page bugs.
 
 ### 3. Business Expenses & Bank Balances (Dashboard Widget)
-- **Bank & Cash Balances Widget**: Live reconciliation across **Federal Bank** (Jupiter), **Tamilnad Mercantile Bank**, and **Cash In Hand** with account details, UPI handles, and total liquidity.
-- **Expense Tracking**: Log operational expenses, server hosting (Hetzner), domain renewals, SaaS (Google Workspace), and utilities.
+- **Bank & Cash Balances Widget**: Live reconciliation across **Primary Bank**, **Secondary Bank**, and **Cash In Hand** with account details, UPI handles, and total liquidity.
+- **Expense Tracking**: Log operational expenses, software subscriptions, hosting, domain renewals, and utilities.
 - **Net Cash Flow & Profit**: Dashboard displays Total Invoiced, Collections, Expenses, and Net Margin in real-time.
 
 ### 4. Collapsible Chart of Accounts Tree View
@@ -29,16 +29,24 @@ A full-featured accounting, invoicing, expense tracking, and ledger management s
 
 ---
 
-## 📊 Google Sheets Migration Options
+## 📊 Database Initialization & Migration Options
 
-We provide an Excel workbook with matching tab names and headers:
-- 📄 **[Sahajanand_Digital_Migration.xlsx](Sahajanand_Digital_Migration.xlsx)** (Multi-sheet Excel workbook)
-- 📁 **[migration_csvs/](migration_csvs/)** (Folder of individual CSVs: `Invoices.csv`, `Payments.csv`, `Expenses.csv`, `ChartOfAccounts.csv`, `Customers.csv`, `Items.csv`, `JournalEntries.csv`, `JournalLedgers.csv`, `CompanySettings.csv`, `NumberSeries.csv`)
+The application supports seamless setup and data migration directly from the Web App:
 
-### How to Import into Google Sheets:
-1. Open your target Google Spreadsheet.
-2. Go to **File** -> **Import** -> **Upload**.
-3. Select `Sahajanand_Digital_Migration.xlsx` and choose **"Replace spreadsheet"** (or **"Insert new sheets"**).
+1. **1-Click Clean Database Setup:**
+   Click **"Initialize Database"** in the Web App's **Migration** tab to automatically set up all 11 required Google Sheet tables with standard double-entry Chart of Accounts, number series, and default company settings.
+2. **Download Generic Sample Templates:**
+   Inside the **Migration** tab, you can instantly download:
+   - **`Gurukul_Books_Sample_Migration_Template.xlsx`**: Pre-formatted Excel workbook ready for bulk data entry.
+   - **Individual CSV Templates**: Pre-configured headers for Invoices, Payments, Expenses, Customers, etc.
+3. **Drag-and-Drop Import:**
+   Drag and drop any multi-table Excel workbook (`.xlsx`), individual CSVs, or migration JSON directly into the web UI to populate your Google Sheets database.
+4. **Frappe Books SQLite Migrator (Optional):**
+   If migrating from an existing desktop Frappe Books install, run:
+   ```bash
+   python3 scripts/frappe_books_migrator.py /path/to/your.books.db
+   ```
+   This generates an import-ready migration payload to drop directly into the web application.
 
 ---
 
@@ -46,17 +54,16 @@ We provide an Excel workbook with matching tab names and headers:
 
 ```
 packages/sahajanand-digital-books/
-├── Sahajanand_Digital_Migration.xlsx  # Multi-sheet Excel workbook for Google Sheets import
-├── migration_csvs/                    # Individual CSV files for each tab
 ├── appsscript.json                    # Google Apps Script manifest
 ├── package.json                       # Workspace dependencies & build scripts
 ├── vite.client.js                     # Vite config for Single-File React SPA
 ├── vite.config.js                     # Vite config for GAS IIFE backend
 ├── dist/
-│   ├── code.js                        # GAS backend IIFE (12.21 kB)
-│   └── index.html                     # Single-file React SPA (315.47 kB)
+│   ├── code.js                        # GAS backend IIFE
+│   └── index.html                     # Single-file React SPA
 ├── scripts/
-│   └── generate_excel_migration.py    # Python script that generates the .xlsx & CSVs
+│   ├── frappe_books_migrator.py       # Universal Frappe Books SQLite migrator
+│   └── generate_sample_templates.py   # Sample template generator
 └── src/
     ├── index.js                       # Server entrypoint exposing GAS functions
     ├── server/                        # Backend Google Sheets logic
@@ -76,7 +83,7 @@ packages/sahajanand-digital-books/
         ├── index.css                  # Tailwind styles + strict 1-page @media print
         ├── components/
         │   ├── Dashboard.jsx          # KPI cards, bank balances widget, recent expenses
-        │   ├── BankBalanceWidget.jsx  # Reconciliation widget for Federal Bank, TMB, Cash
+        │   ├── BankBalanceWidget.jsx  # Live reconciliation widget for Bank & Cash accounts
         │   ├── ExpenseModal.jsx       # Quick expense recording modal
         │   ├── ExpenseManager.jsx     # Expenses list, search, and category filters
         │   ├── InvoiceManager.jsx     # Invoices list, filter, status badges

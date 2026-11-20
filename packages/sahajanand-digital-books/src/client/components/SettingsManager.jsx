@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { callGAS } from '../GAS';
+import { formatCurrency, CURRENCY_CONFIG, getCurrencySymbol } from '../utils/formatters';
 
 const SettingsManager = ({ settings = {}, onSettingsSaved, onOpenCustomizer }) => {
   const [formData, setFormData] = useState({
     organizationType: settings.organizationType || 'business', // 'business' | 'institute'
     companyName: settings.companyName || '',
+    currency: settings.currency || 'INR',
     fullname: settings.fullname || '',
     address: settings.address || '',
     phone: settings.phone || '',
@@ -23,6 +25,7 @@ const SettingsManager = ({ settings = {}, onSettingsSaved, onOpenCustomizer }) =
     primaryAccountNo: settings.primaryAccountNo || '',
     primaryIfsc: settings.primaryIfsc || '',
     primaryUpiId: settings.primaryUpiId || '',
+    upiPayeeName: settings.upiPayeeName || '',
     // Secondary Bank
     secondaryBankName: settings.secondaryBankName || '',
     secondaryBankBranch: settings.secondaryBankBranch || '',
@@ -32,12 +35,37 @@ const SettingsManager = ({ settings = {}, onSettingsSaved, onOpenCustomizer }) =
     secondaryUpiId: settings.secondaryUpiId || '',
     defaultPrintTemplate: settings.defaultPrintTemplate || 'IndianStyleTally',
   });
+  const [isCustomCurrency, setIsCustomCurrency] = useState(
+    Boolean(settings.currency && !CURRENCY_CONFIG[settings.currency.toUpperCase()])
+  );
+  const [customCurrencyCode, setCustomCurrencyCode] = useState(
+    settings.currency && !CURRENCY_CONFIG[settings.currency.toUpperCase()] ? settings.currency : ''
+  );
   const [loading, setLoading] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCurrencySelect = (e) => {
+    const val = e.target.value;
+    if (val === 'CUSTOM') {
+      setIsCustomCurrency(true);
+      if (customCurrencyCode) {
+        setFormData((prev) => ({ ...prev, currency: customCurrencyCode.toUpperCase() }));
+      }
+    } else {
+      setIsCustomCurrency(false);
+      setFormData((prev) => ({ ...prev, currency: val }));
+    }
+  };
+
+  const handleCustomCurrencyChange = (e) => {
+    const val = e.target.value.toUpperCase();
+    setCustomCurrencyCode(val);
+    setFormData((prev) => ({ ...prev, currency: val || 'INR' }));
   };
 
   const handleOrgTypeSwitch = (type) => {
@@ -156,6 +184,89 @@ const SettingsManager = ({ settings = {}, onSettingsSaved, onOpenCustomizer }) =
           </div>
         </div>
 
+        {/* 0.5 Default Print / Receipt Template Card */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-2">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                Default Print & Receipt Template
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Selected template opens automatically when generating, viewing, or printing receipts & invoices
+              </p>
+            </div>
+            <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 font-mono">
+              Active: {formData.defaultPrintTemplate}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[
+              {
+                id: 'EducationFeeReceipt',
+                title: '🎓 Educational Fee Receipt',
+                badge: 'Recommended for Institute',
+                desc: 'Official fee receipt with institute logo, student details, course fee table, and UPI QR code.',
+              },
+              {
+                id: 'EducationPartialFeeReceipt',
+                title: '💳 Partial Fee / Installment Receipt',
+                badge: 'Installments',
+                desc: 'Displays Total Course Fee, Amount Paid Today, and Remaining Balance Due with UPI balance link.',
+              },
+              {
+                id: 'IndianStyleTally',
+                title: '🇮🇳 Indian Tally Tax Invoice',
+                badge: 'Classic Tally',
+                desc: 'Formal double-entry tax invoice with HSN breakdown, GST declaration, and authorized stamp.',
+              },
+              {
+                id: 'ModernProfessional',
+                title: '🏦 Modern Professional (Primary Bank)',
+                badge: 'Corporate',
+                desc: 'Modern corporate layout with primary bank details, totals banner, and UPI QR code.',
+              },
+              {
+                id: 'ModernMinimalist',
+                title: '⚡ Modern Minimalist (Secondary Bank)',
+                badge: 'Digital Banking',
+                desc: 'Sleek digital-first receipt layout designed with secondary bank account and UPI link.',
+              },
+            ].map((tpl) => {
+              const isSelected =
+                formData.defaultPrintTemplate === tpl.id ||
+                (tpl.id === 'ModernProfessional' && formData.defaultPrintTemplate === 'TamilnadMercantileBank') ||
+                (tpl.id === 'ModernMinimalist' && formData.defaultPrintTemplate === 'JupiterBank');
+              return (
+                <div
+                  key={tpl.id}
+                  onClick={() => setFormData((prev) => ({ ...prev, defaultPrintTemplate: tpl.id }))}
+                  className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-indigo-600 bg-indigo-50/40 shadow-xs ring-2 ring-indigo-500/20'
+                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                  }`}
+                >
+                <div>
+                  <div className="flex justify-between items-start gap-1 mb-1">
+                    <h4 className="font-bold text-slate-900 text-xs">{tpl.title}</h4>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
+                      {tpl.badge}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">{tpl.desc}</p>
+                </div>
+                <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
+                  <span className={`font-bold ${formData.defaultPrintTemplate === tpl.id ? 'text-indigo-600' : 'text-slate-400'}`}>
+                    {formData.defaultPrintTemplate === tpl.id ? '✓ Default Selected' : 'Click to set default'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+          </div>
+        </div>
+
         {/* 1. Company Profile Card */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
           <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2">
@@ -176,6 +287,48 @@ const SettingsManager = ({ settings = {}, onSettingsSaved, onOpenCustomizer }) =
                 required
                 className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold focus:border-blue-500"
               />
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between items-center">
+                <label className="font-bold text-slate-600 uppercase text-xs">
+                  Default Currency *
+                </label>
+                <span className="text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  Preview: {formatCurrency(125000, formData.currency)}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={isCustomCurrency ? 'CUSTOM' : formData.currency}
+                  onChange={handleCurrencySelect}
+                  className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold focus:border-blue-500 bg-white"
+                >
+                  <option value="INR">INR (₹) - Indian Rupee (Default)</option>
+                  <option value="USD">USD ($) - US Dollar</option>
+                  <option value="EUR">EUR (€) - Euro</option>
+                  <option value="GBP">GBP (£) - British Pound</option>
+                  <option value="AED">AED (AED) - UAE Dirham</option>
+                  <option value="CAD">CAD (CA$) - Canadian Dollar</option>
+                  <option value="AUD">AUD (A$) - Australian Dollar</option>
+                  <option value="SGD">SGD (SG$) - Singapore Dollar</option>
+                  <option value="SAR">SAR (SAR) - Saudi Riyal</option>
+                  <option value="QAR">QAR (QAR) - Qatari Riyal</option>
+                  <option value="JPY">JPY (¥) - Japanese Yen</option>
+                  <option value="CUSTOM">Custom Currency...</option>
+                </select>
+
+                {isCustomCurrency && (
+                  <input
+                    type="text"
+                    placeholder="e.g. BRL"
+                    value={customCurrencyCode}
+                    onChange={handleCustomCurrencyChange}
+                    maxLength={6}
+                    className="w-28 rounded-xl border border-blue-400 p-2.5 text-xs font-mono font-bold uppercase focus:border-blue-600 bg-blue-50/30"
+                  />
+                )}
+              </div>
             </div>
 
             <div className="space-y-1">
@@ -390,10 +543,22 @@ const SettingsManager = ({ settings = {}, onSettingsSaved, onOpenCustomizer }) =
               <input
                 type="text"
                 name="primaryUpiId"
-                placeholder="e.g. institute@sbi or user@upi"
+                placeholder="e.g. yourname@upi or institute@bank"
                 value={formData.primaryUpiId}
                 onChange={handleChange}
                 className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-mono font-bold text-blue-600 focus:border-blue-500"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-slate-600 uppercase">UPI Payee / Account Holder Name</label>
+              <input
+                type="text"
+                name="upiPayeeName"
+                placeholder="e.g. Account Holder / Organization Name"
+                value={formData.upiPayeeName}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold text-slate-800 focus:border-blue-500"
               />
             </div>
           </div>
@@ -416,7 +581,7 @@ const SettingsManager = ({ settings = {}, onSettingsSaved, onOpenCustomizer }) =
               <input
                 type="text"
                 name="secondaryBankName"
-                placeholder="e.g. Federal Bank / Axis Bank"
+                placeholder="e.g. State Bank of India / HDFC Bank"
                 value={formData.secondaryBankName}
                 onChange={handleChange}
                 className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-semibold focus:border-blue-500"

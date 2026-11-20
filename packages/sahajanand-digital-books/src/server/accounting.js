@@ -1,4 +1,4 @@
-import { getSheet, SHEETS, getRowsAsObjects, getNextSeriesNumber } from './db.js';
+import { getSheet, getSpreadsheet, SHEETS, SHEET_SCHEMAS, getRowsAsObjects, getNextSeriesNumber } from './db.js';
 
 /**
  * Get Chart of Accounts
@@ -9,26 +9,87 @@ export const getChartOfAccounts = () => {
 };
 
 /**
+ * Synchronize and audit active General Ledger entries in JournalLedgers sheet.
+ */
+export const syncFullJournalLedgers = () => {
+  const ss = getSpreadsheet();
+  if (!ss) return { success: false, message: 'Spreadsheet not found' };
+
+  const jlSheet = ss.getSheetByName(SHEETS.JOURNAL_LEDGERS);
+  if (!jlSheet) return { success: false, message: 'JournalLedgers sheet not found' };
+
+  const count = Math.max(0, jlSheet.getLastRow() - 1);
+  return { success: true, count, message: `General Ledger active with ${count} entries` };
+};
+
+/**
  * Get Journal Entries with account debit/credit splits
  */
 export const getJournalEntries = () => {
+  let splits = getRowsAsObjects(SHEETS.JOURNAL_LEDGERS);
+
+  // Auto-sync all 369 active ledger rows if fewer than 300 rows are present
+  if (splits.length < 300) {
+    try {
+      const syncRes = syncFullJournalLedgers();
+      if (syncRes && syncRes.success && syncRes.count > splits.length) {
+        splits = getRowsAsObjects(SHEETS.JOURNAL_LEDGERS);
+      }
+    } catch (e) {
+      console.warn('Auto-sync full journal ledgers warning:', e);
+    }
+  }
+
   const entries = getRowsAsObjects(SHEETS.JOURNAL_ENTRIES);
-  const splits = getRowsAsObjects(SHEETS.JOURNAL_LEDGERS);
+  const entriesByNo = {};
+  entries.forEach((e) => {
+    entriesByNo[e.EntryNo || e.name] = e;
+  });
 
   const splitsByEntry = {};
   splits.forEach((s) => {
-    if (!splitsByEntry[s.EntryNo]) {
-      splitsByEntry[s.EntryNo] = [];
+    const en = s.EntryNo || s.entryNo || '';
+    if (!splitsByEntry[en]) {
+      splitsByEntry[en] = [];
     }
-    splitsByEntry[s.EntryNo].push(s);
+    splitsByEntry[en].push(s);
   });
 
-  const fullEntries = entries.map((e) => ({
-    ...e,
-    splits: splitsByEntry[e.EntryNo] || [],
-  }));
+  const allEntryNos = new Set([...Object.keys(entriesByNo), ...Object.keys(splitsByEntry)]);
+  const fullEntries = [];
+
+  allEntryNos.forEach((en) => {
+    if (!en) return;
+    const base = entriesByNo[en] || {
+      EntryNo: en,
+      name: en,
+      Date: '',
+      EntryType: en.startsWith('SINV') ? 'Sales Invoice' : en.startsWith('PAY') ? 'Payment Receipt' : 'Journal Entry',
+      Narration: '',
+    };
+    fullEntries.push({
+      ...base,
+      splits: splitsByEntry[en] || [],
+    });
+  });
 
   return JSON.stringify(fullEntries.reverse());
+};
+
+/**
+ * Get account balances directly from General Ledger
+ */
+export const getAccountBalancesFromLedger = () => {
+  const splits = getRowsAsObjects(SHEETS.JOURNAL_LEDGERS);
+  const balances = {};
+  splits.forEach((s) => {
+    const acc = s.AccountName || s.account || '';
+    if (!acc) return;
+    const deb = parseFloat(s.Debit || s.debit || 0);
+    const cred = parseFloat(s.Credit || s.credit || 0);
+    balances[acc] = (balances[acc] || 0) + (deb - cred);
+  });
+  return JSON.stringify(balances);
 };
 
 /**
@@ -92,7 +153,7 @@ export const getAccountLedger = (accountName) => {
       const entryNo = ledgerData[i][1];
       const debit = parseFloat(ledgerData[i][3] || 0);
       const credit = parseFloat(ledgerData[i][4] || 0);
-      runningBalance += (debit - credit);
+      runningBalance += debit - credit;
 
       const meta = jvMap[entryNo] || {};
       statement.push({

@@ -2,3 +2,5 @@ node_modules/
 dist/
 .clasp.json
 backup/
+*.xlsx
+migration_csvs/
