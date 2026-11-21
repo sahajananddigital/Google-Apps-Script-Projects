@@ -6,14 +6,40 @@
   },
   "exceptionLogging": "STACKDRIVER",
   "oauthScopes": [
-    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/spreadsheets.currentonly",
     "https://www.googleapis.com/auth/script.external_request",
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/script.container.ui"
   ],
+  "urlFetchWhitelist": [
+    "https://sahajananddigital.github.io/",
+    "https://script.google.com/",
+    "https://www.googleapis.com/"
+  ],
   "runtimeVersion": "V8",
   "webapp": {
     "access": "ANYONE",
-    "executeAs": "USER_DEPLOYING"
+    "executeAs": "USER_ACCESSING"
+  },
+  "addOns": {
+    "common": {
+      "name": "Gurukul Books ERP",
+      "logoUrl": "https://sahajananddigital.github.io/Google-Apps-Script-Projects/sahajanand-digital-books/assets/app-logo-120x120.png",
+      "layoutProperties": {
+        "primaryColor": "#1e3a8a",
+        "secondaryColor": "#3b82f6"
+      },
+      "openLinkUrlPrefixes": [
+        "https://script.google.com/macros/s/",
+        "https://sahajananddigital.github.io/",
+        "https://docs.google.com/spreadsheets/"
+      ]
+    },
+    "sheets": {
+      "homepageTrigger": {
+        "runFunction": "onSheetsHomepage"
+      }
+    }
   }
 }

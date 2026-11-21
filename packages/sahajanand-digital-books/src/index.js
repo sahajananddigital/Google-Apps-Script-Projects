@@ -1,5 +1,13 @@
 import { doGet } from './server/webapp.js';
-import { initDatabase, ensureAllHeaders, setDatabaseSpreadsheetId } from './server/db.js';
+import {
+  initDatabase,
+  ensureAllHeaders,
+  setDatabaseSpreadsheetId,
+  getDatabaseInfo,
+  createNewDatabaseFromUI,
+  connectExistingSpreadsheet,
+  createDatabaseSpreadsheet,
+} from './server/db.js';
 import { getInvoices, createInvoice, updateInvoiceStatus } from './server/invoice.js';
 import { getPayments, addPayment } from './server/payment.js';
 import { getExpenses, addExpense, syncExpensesFromJournalLedgers } from './server/expense.js';
@@ -8,6 +16,7 @@ import { getCustomers, saveCustomer, syncCustomerOutstanding } from './server/cu
 import { getItems, saveItem, deleteItem } from './server/item.js';
 import { getAppSettings, saveAppSettings, getPrintTemplates } from './server/settings.js';
 import { importMigrationSheets, importExcelFile, getMigrationStatus, resetDatabase, importDefaultSeedData } from './server/migration.js';
+import { onSheetsHomepage, onCardInitDatabase, onCardAuditLedgers } from './server/addon.js';
 
 export function onOpen() {
   try {
@@ -57,5 +66,12 @@ export {
   resetDatabase,
   importDefaultSeedData,
   setDatabaseSpreadsheetId,
+  getDatabaseInfo,
+  createNewDatabaseFromUI,
+  connectExistingSpreadsheet,
+  createDatabaseSpreadsheet,
+  onSheetsHomepage,
+  onCardInitDatabase,
+  onCardAuditLedgers,
 };
 

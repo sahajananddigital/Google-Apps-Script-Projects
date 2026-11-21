@@ -86,15 +86,21 @@
         </p>
         <div class="space-y-3 text-xs">
           <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
-            <span class="font-bold text-slate-800 font-mono block">https://www.googleapis.com/auth/spreadsheets</span>
+            <span class="font-bold text-slate-800 font-mono block">https://www.googleapis.com/auth/drive.file</span>
             <p class="text-slate-600 mt-1">
-              <strong>Purpose:</strong> To create and manage the user's private database sheets (Invoices, Customers, Items, Expenses, Payments, Chart of Accounts, and General Ledger Vouchers) inside your own designated Google Sheets workbook.
+              <strong>Purpose (Least Privilege):</strong> To create and manage ONLY the specific accounting database spreadsheet created by this application in your Google Drive. Gurukul Books cannot read, modify, or view any of your other personal or corporate files.
+            </p>
+          </div>
+          <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
+            <span class="font-bold text-slate-800 font-mono block">https://www.googleapis.com/auth/spreadsheets.currentonly</span>
+            <p class="text-slate-600 mt-1">
+              <strong>Purpose:</strong> To interact strictly with the active spreadsheet when the user opens the Gurukul Books add-on within Google Sheets.
             </p>
           </div>
           <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
             <span class="font-bold text-slate-800 font-mono block">https://www.googleapis.com/auth/userinfo.email</span>
             <p class="text-slate-600 mt-1">
-              <strong>Purpose:</strong> To authenticate your session and confirm that you are the authorized owner of the Google Spreadsheet database.
+              <strong>Purpose:</strong> To authenticate your session and isolate your preferences securely.
             </p>
           </div>
           <div class="p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">

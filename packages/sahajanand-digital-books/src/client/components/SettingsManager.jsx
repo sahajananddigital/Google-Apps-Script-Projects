@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { callGAS } from '../GAS';
 import { formatCurrency, CURRENCY_CONFIG, getCurrencySymbol } from '../utils/formatters';
 
-const SettingsManager = ({ settings = {}, onSettingsSaved, onOpenCustomizer }) => {
+const SettingsManager = ({ settings = {}, onSettingsSaved, onDatabaseChanged, onOpenCustomizer }) => {
   const [formData, setFormData] = useState({
     organizationType: settings.organizationType || 'business', // 'business' | 'institute'
     companyName: settings.companyName || '',
@@ -43,6 +43,85 @@ const SettingsManager = ({ settings = {}, onSettingsSaved, onOpenCustomizer }) =
   );
   const [loading, setLoading] = useState(false);
   const [savedMessage, setSavedMessage] = useState('');
+
+  // Per-user database spreadsheet state
+  const [dbInfo, setDbInfo] = useState({
+    configured: false,
+    spreadsheetId: '',
+    spreadsheetName: '',
+    spreadsheetUrl: '',
+  });
+  const [loadingDb, setLoadingDb] = useState(false);
+  const [dbMessage, setDbMessage] = useState('');
+  const [connectInput, setConnectInput] = useState('');
+  const [showConnectBox, setShowConnectBox] = useState(false);
+
+  const loadDatabaseInfo = async () => {
+    setLoadingDb(true);
+    try {
+      const res = await callGAS('getDatabaseInfo');
+      if (res && res.spreadsheetId) {
+        setDbInfo(res);
+      }
+    } catch (e) {
+      console.error('Failed to load DB info:', e);
+    } finally {
+      setLoadingDb(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDatabaseInfo();
+  }, []);
+
+  const handleCreateNewDatabase = async () => {
+    const defaultName = formData.companyName
+      ? `${formData.companyName} - Financial ERP Database`
+      : 'Gurukul Books - Financial ERP Database';
+    const name = window.prompt('Enter name for your new Google Spreadsheet in Google Drive:', defaultName);
+    if (!name) return;
+
+    setLoadingDb(true);
+    setDbMessage('');
+    try {
+      const res = await callGAS('createNewDatabaseFromUI', name);
+      if (res.success) {
+        setDbMessage(`✓ Successfully created and connected: ${res.spreadsheetName}`);
+        await loadDatabaseInfo();
+        if (onDatabaseChanged) onDatabaseChanged();
+      } else {
+        alert(res.message || 'Failed to create database');
+      }
+    } catch (e) {
+      alert('Error creating spreadsheet: ' + (e.message || String(e)));
+    } finally {
+      setLoadingDb(false);
+    }
+  };
+
+  const handleConnectExisting = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!connectInput.trim()) return;
+
+    setLoadingDb(true);
+    setDbMessage('');
+    try {
+      const res = await callGAS('connectExistingSpreadsheet', connectInput.trim());
+      if (res.success) {
+        setDbMessage(`✓ Connected to spreadsheet: ${res.spreadsheetName}`);
+        setShowConnectBox(false);
+        setConnectInput('');
+        await loadDatabaseInfo();
+        if (onDatabaseChanged) onDatabaseChanged();
+      } else {
+        alert(res.message || 'Failed to connect spreadsheet');
+      }
+    } catch (e) {
+      alert('Error connecting spreadsheet: ' + (e.message || String(e)));
+    } finally {
+      setLoadingDb(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -129,6 +208,113 @@ const SettingsManager = ({ settings = {}, onSettingsSaved, onOpenCustomizer }) =
             </span>
           )}
         </div>
+      </div>
+
+      {/* Google Sheets Database Connection Card */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 p-6 rounded-2xl shadow-sm text-white space-y-4 border border-slate-700/50">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-white/10 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-emerald-400 text-lg">📊</span>
+              <h3 className="text-sm font-bold tracking-wide uppercase text-white">Google Sheets Database Storage</h3>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Each user creates and owns their personal accounting database in their Google Drive. Data is 100% private.
+            </p>
+          </div>
+          {dbInfo.spreadsheetId && (
+            <span className="text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Connected & Active
+            </span>
+          )}
+        </div>
+
+        <div className="bg-white/5 border border-white/10 p-4 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="space-y-1">
+            <div className="text-[11px] text-slate-400 font-medium">Active Database Spreadsheet:</div>
+            <div className="text-sm font-bold text-white flex items-center gap-2">
+              {dbInfo.spreadsheetName || 'Gurukul Books - Financial ERP Database'}
+            </div>
+            {dbInfo.spreadsheetId && (
+              <div className="text-[11px] text-slate-400 font-mono break-all">
+                ID: {dbInfo.spreadsheetId}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {dbInfo.spreadsheetUrl && (
+              <a
+                href={dbInfo.spreadsheetUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+              >
+                <span>Open in Sheets</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={handleCreateNewDatabase}
+              disabled={loadingDb}
+              className="px-3 py-1.5 bg-emerald-600/90 hover:bg-emerald-600 text-white rounded-lg font-semibold text-xs border border-emerald-500/30 transition-all flex items-center gap-1 shadow-sm"
+            >
+              <span>➕ Create New Sheet</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowConnectBox(!showConnectBox)}
+              className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold text-xs border border-white/20 transition-all"
+            >
+              <span>🔗 Connect Another Sheet</span>
+            </button>
+          </div>
+        </div>
+
+        {dbMessage && (
+          <div className="text-xs font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-3 py-2 rounded-lg">
+            {dbMessage}
+          </div>
+        )}
+
+        {showConnectBox && (
+          <div className="bg-white/10 p-4 rounded-xl border border-white/15 space-y-3">
+            <div className="text-xs font-semibold text-slate-200">
+              Connect an Existing Google Sheet from your Google Drive:
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                value={connectInput}
+                onChange={(e) => setConnectInput(e.target.value)}
+                placeholder="Paste Google Sheet URL (https://docs.google.com/spreadsheets/d/...) or Sheet ID"
+                className="flex-1 bg-white text-slate-900 px-3 py-2 rounded-lg text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              <button
+                type="button"
+                onClick={handleConnectExisting}
+                disabled={loadingDb || !connectInput.trim()}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-lg text-xs transition-all whitespace-nowrap"
+              >
+                {loadingDb ? 'Connecting...' : 'Connect Spreadsheet'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowConnectBox(false)}
+                className="px-3 py-2 bg-white/15 hover:bg-white/25 text-white font-semibold rounded-lg text-xs"
+              >
+                Cancel
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-300">
+              * Ensure your Google Account has Edit access to this spreadsheet. All 11 tables and schemas will be automatically verified and initialized.
+            </p>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6 text-xs">

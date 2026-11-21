@@ -180,7 +180,8 @@ export const doGet = (e) => {
   if (e && e.parameter && e.parameter.set_sheet) {
     try {
       const cleanId = String(e.parameter.set_sheet).trim().replace(/^https:\/\/docs\.google\.com\/spreadsheets\/d\//, '').replace(/\/.*$/, '');
-      PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', cleanId);
+      try { PropertiesService.getUserProperties().setProperty('SPREADSHEET_ID', cleanId); } catch (uErr) {}
+      try { PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', cleanId); } catch (sErr) {}
       return ContentService.createTextOutput(JSON.stringify({ success: true, message: `Connected to Spreadsheet ID: ${cleanId}` }, null, 2))
         .setMimeType(ContentService.MimeType.JSON);
     } catch (err) {
@@ -189,9 +190,9 @@ export const doGet = (e) => {
     }
   }
 
-  let title = 'Digital Books - Accounts & Invoices';
+  let title = 'Gurukul Books - Accounts & Invoices';
   try {
-    const ss = getSpreadsheet();
+    const ss = getSpreadsheet(false);
     if (ss) {
       const setSheet = ss.getSheetByName(SHEETS.SETTINGS);
       if (setSheet) {

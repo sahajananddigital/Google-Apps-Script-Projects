@@ -26,42 +26,220 @@ export const SHEET_SCHEMAS = {
   [SHEETS.NUMBER_SERIES]: ['SeriesName', 'Prefix', 'CurrentCount', 'PadZeros'],
 };
 
+export const DEFAULT_CHART_OF_ACCOUNTS = [
+  ['Application of Funds (Assets)', 'Asset', '', '', true],
+  ['Current Assets', 'Asset', 'Application of Funds (Assets)', '', true],
+  ['Bank Accounts', 'Asset', 'Current Assets', 'Bank', true],
+  ['Primary Bank', 'Asset', 'Bank Accounts', 'Bank', false],
+  ['Secondary Bank', 'Asset', 'Bank Accounts', 'Bank', false],
+  ['Cash In Hand', 'Asset', 'Current Assets', 'Cash', true],
+  ['Cash', 'Asset', 'Cash In Hand', 'Cash', false],
+  ['Accounts Receivable', 'Asset', 'Current Assets', 'Receivable', true],
+  ['Debtors', 'Asset', 'Accounts Receivable', 'Receivable', false],
+  ['Source of Funds (Liabilities)', 'Liability', '', '', true],
+  ['Current Liabilities', 'Liability', 'Source of Funds (Liabilities)', '', true],
+  ['Accounts Payable', 'Liability', 'Current Liabilities', 'Payable', true],
+  ['Creditors', 'Liability', 'Accounts Payable', 'Payable', false],
+  ['Equity', 'Equity', '', '', true],
+  ['Income', 'Income', '', '', true],
+  ['Direct Income', 'Income', 'Income', '', true],
+  ['Service', 'Income', 'Direct Income', 'Service', false],
+  ['Expenses', 'Expense', '', '', true],
+  ['Direct Expenses', 'Expense', 'Expenses', '', true],
+  ['Operating Expenses', 'Expense', 'Direct Expenses', 'Expense', false],
+  ['Software & Hosting', 'Expense', 'Direct Expenses', 'Expense', false],
+];
+
 /**
- * Set target spreadsheet ID in Script Properties
+ * Create a brand new Google Spreadsheet database in the user's Google Drive
+ * and initialize all tables, schemas, default settings, and chart of accounts.
+ *
+ * @param {string} [name='Gurukul Books - Financial ERP Database']
+ * @returns {SpreadsheetApp.Spreadsheet}
  */
-export const setDatabaseSpreadsheetId = (id) => {
-  if (!id) return { success: false, message: 'Spreadsheet ID cannot be empty' };
+export const createDatabaseSpreadsheet = (name = 'Gurukul Books - Financial ERP Database') => {
+  const newSs = SpreadsheetApp.create(name);
+  const initialSheets = newSs.getSheets();
+
+  // Initialize all tables, schemas, and default records
+  initDatabase(newSs);
+
+  // Remove default 'Sheet1' if newly created sheets exist
   try {
-    const cleanId = String(id).trim().replace(/^https:\/\/docs\.google\.com\/spreadsheets\/d\//, '').replace(/\/.*$/, '');
-    PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', cleanId);
-    return { success: true, message: `Successfully connected to Spreadsheet ID: ${cleanId}` };
-  } catch (e) {
-    return { success: false, message: e.toString() };
+    if (initialSheets && initialSheets.length > 0) {
+      const defaultSheet = initialSheets[0];
+      if (newSs.getSheets().length > 1 && defaultSheet.getLastRow() === 0) {
+        newSs.deleteSheet(defaultSheet);
+      }
+    }
+  } catch (cleanErr) {
+    // Non-critical cleanup
   }
+
+  // Save to UserProperties (private to each user)
+  try {
+    PropertiesService.getUserProperties().setProperty('SPREADSHEET_ID', newSs.getId());
+  } catch (propErr) {}
+
+  return newSs;
 };
 
 /**
- * Get active spreadsheet handle safely from Script Properties or container-bound document
+ * Get active spreadsheet handle safely.
+ *
+ * Priority Resolution:
+ * 1. User Properties (Isolated to the logged-in user)
+ * 2. Active container spreadsheet (if opened inside Google Sheets Add-on)
+ * 3. Script Properties (Shared fallback if user has explicit access)
+ * 4. Auto-creates a new spreadsheet in user's Drive if none exists or accessible!
  */
-export const getSpreadsheet = () => {
-  // 1. Script Properties override if configured
+export const getSpreadsheet = (autoCreate = true) => {
+  // 1. User Properties (Isolated per user)
   try {
-    const propId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
-    if (propId) return SpreadsheetApp.openById(propId);
-  } catch (e) {}
+    const userPropId = PropertiesService.getUserProperties().getProperty('SPREADSHEET_ID');
+    if (userPropId) {
+      const ss = SpreadsheetApp.openById(userPropId);
+      if (ss) return ss;
+    }
+  } catch (e) {
+    // Permission denied or deleted file -> clear stale ID
+    try {
+      PropertiesService.getUserProperties().deleteProperty('SPREADSHEET_ID');
+    } catch (delErr) {}
+  }
 
-  // 2. Active spreadsheet (if container-bound)
+  // 2. Active spreadsheet (if container-bound / Sheets Add-on)
   try {
     const active = SpreadsheetApp.getActiveSpreadsheet();
     if (active) {
       try {
-        PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', active.getId());
+        PropertiesService.getUserProperties().setProperty('SPREADSHEET_ID', active.getId());
       } catch (err) {}
       return active;
     }
   } catch (e) {}
 
+  // 3. Script Properties override (if current user has access to shared spreadsheet)
+  try {
+    const scriptPropId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+    if (scriptPropId) {
+      const ss = SpreadsheetApp.openById(scriptPropId);
+      if (ss) {
+        try {
+          PropertiesService.getUserProperties().setProperty('SPREADSHEET_ID', scriptPropId);
+        } catch (saveErr) {}
+        return ss;
+      }
+    }
+  } catch (e) {
+    // User does not have access to developer's private spreadsheet -> ignore and proceed
+  }
+
+  // 4. Auto-create personal spreadsheet in user's Drive if autoCreate is enabled
+  if (autoCreate) {
+    try {
+      return createDatabaseSpreadsheet('Gurukul Books - Financial ERP Database');
+    } catch (createErr) {
+      console.error('Failed to auto-create spreadsheet in user Drive:', createErr);
+    }
+  }
+
   return null;
+};
+
+/**
+ * Get current connected database spreadsheet info
+ */
+export const getDatabaseInfo = () => {
+  try {
+    const ss = getSpreadsheet(true);
+    if (!ss) {
+      return {
+        configured: false,
+        spreadsheetId: null,
+        spreadsheetName: null,
+        spreadsheetUrl: null,
+        message: 'No spreadsheet connected',
+      };
+    }
+    return {
+      configured: true,
+      spreadsheetId: ss.getId(),
+      spreadsheetName: ss.getName(),
+      spreadsheetUrl: ss.getUrl(),
+      message: 'Connected successfully',
+    };
+  } catch (e) {
+    return {
+      configured: false,
+      spreadsheetId: null,
+      spreadsheetName: null,
+      spreadsheetUrl: null,
+      message: e.toString(),
+    };
+  }
+};
+
+/**
+ * Connect an existing Google Sheet by URL or ID (must be owned or shared with user)
+ */
+export const connectExistingSpreadsheet = (sheetIdOrUrl) => {
+  if (!sheetIdOrUrl) return { success: false, message: 'Please enter a valid Google Sheet URL or ID' };
+  try {
+    const cleanId = String(sheetIdOrUrl).trim().replace(/^https:\/\/docs\.google\.com\/spreadsheets\/d\//, '').replace(/\/.*$/, '');
+    const ss = SpreadsheetApp.openById(cleanId);
+    if (!ss) {
+      return { success: false, message: `Could not open spreadsheet with ID: ${cleanId}` };
+    }
+
+    // Ensure all 11 required tables and headers exist
+    initDatabase(ss);
+
+    // Save to UserProperties
+    PropertiesService.getUserProperties().setProperty('SPREADSHEET_ID', cleanId);
+
+    return {
+      success: true,
+      spreadsheetId: ss.getId(),
+      spreadsheetName: ss.getName(),
+      spreadsheetUrl: ss.getUrl(),
+      message: `Successfully connected to spreadsheet: ${ss.getName()}`,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: `Permission error: Make sure you have edit access to this spreadsheet. (${err.message || String(err)})`,
+    };
+  }
+};
+
+/**
+ * Create a new personal database spreadsheet triggered from the UI
+ */
+export const createNewDatabaseFromUI = (customName) => {
+  try {
+    const name = (customName && String(customName).trim()) || 'Gurukul Books - Financial ERP Database';
+    const newSs = createDatabaseSpreadsheet(name);
+    return {
+      success: true,
+      spreadsheetId: newSs.getId(),
+      spreadsheetName: newSs.getName(),
+      spreadsheetUrl: newSs.getUrl(),
+      message: `Successfully created new database sheet: ${newSs.getName()}`,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: `Failed to create spreadsheet: ${err.message || String(err)}`,
+    };
+  }
+};
+
+/**
+ * Set target spreadsheet ID in User Properties
+ */
+export const setDatabaseSpreadsheetId = (id) => {
+  return connectExistingSpreadsheet(id);
 };
 
 /**
@@ -94,7 +272,7 @@ export const ensureSheetHeaders = (sheet, name) => {
  * Get sheet by name, or initialize and ensure headers if not found or blank
  */
 export const getSheet = (name) => {
-  const ss = getSpreadsheet();
+  const ss = getSpreadsheet(true);
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
@@ -106,8 +284,9 @@ export const getSheet = (name) => {
 /**
  * Initialize all database sheets with headers and default configurations
  */
-export const initDatabase = () => {
-  const ss = getSpreadsheet();
+export const initDatabase = (ssOverride) => {
+  const ss = ssOverride || getSpreadsheet(false);
+  if (!ss) return { success: false, message: 'Spreadsheet not found' };
 
   Object.entries(SHEET_SCHEMAS).forEach(([name, headers]) => {
     let sheet = ss.getSheetByName(name);
@@ -119,7 +298,7 @@ export const initDatabase = () => {
 
   // Default Company Settings
   const setSheet = ss.getSheetByName(SHEETS.SETTINGS);
-  if (setSheet.getLastRow() <= 1) {
+  if (setSheet && setSheet.getLastRow() <= 1) {
     const defaultSettings = [
       ['companyName', 'My Organization'],
       ['fullname', ''],
@@ -153,16 +332,22 @@ export const initDatabase = () => {
 
   // Default Number Series
   const seriesSheet = ss.getSheetByName(SHEETS.NUMBER_SERIES);
-  if (seriesSheet.getLastRow() <= 1) {
+  if (seriesSheet && seriesSheet.getLastRow() <= 1) {
     const seriesData = [
-      ['SalesInvoice', 'SINV-', 1062, 4],
-      ['Payment', 'PAY-', 1046, 4],
-      ['Expense', 'EXP-', 1050, 4],
-      ['JournalEntry', 'JV-', 1097, 4],
+      ['SalesInvoice', 'SINV-', 1001, 4],
+      ['Payment', 'PAY-', 1001, 4],
+      ['Expense', 'EXP-', 1001, 4],
+      ['JournalEntry', 'JV-', 1001, 4],
       ['Receipt', 'RCPT-', 1001, 4],
-      ['Quote', 'SQUOT-', 1005, 4],
+      ['Quote', 'SQUOT-', 1001, 4],
     ];
     seriesSheet.getRange(2, 1, seriesData.length, 4).setValues(seriesData);
+  }
+
+  // Default Chart of Accounts
+  const coaSheet = ss.getSheetByName(SHEETS.ACCOUNTS);
+  if (coaSheet && coaSheet.getLastRow() <= 1) {
+    coaSheet.getRange(2, 1, DEFAULT_CHART_OF_ACCOUNTS.length, 5).setValues(DEFAULT_CHART_OF_ACCOUNTS);
   }
 
   return { success: true, message: 'Database sheets and headers verified and initialized successfully' };

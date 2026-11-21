@@ -442,6 +442,7 @@ const App = () => {
                 setSettings(newSettings);
                 if (newSettings.currency) setAppCurrency(newSettings.currency);
               }}
+              onDatabaseChanged={loadAllData}
               onOpenCustomizer={() => setActiveTab('template_customizer')}
             />
           )}

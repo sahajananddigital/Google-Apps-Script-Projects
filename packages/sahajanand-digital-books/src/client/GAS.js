@@ -384,6 +384,37 @@ export const execGAS = (functionName, ...args) => {
             case 'resetDatabase':
               resolve({ success: true, message: 'All sheets reset to blank schemas.' });
               break;
+            case 'getDatabaseInfo':
+              resolve({
+                configured: true,
+                spreadsheetId: '1mockSpreadsheetIdForDev',
+                spreadsheetName: 'Gurukul Books - Financial ERP Database (Mock)',
+                spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/1mockSpreadsheetIdForDev/edit',
+                message: 'Connected to mock database',
+              });
+              break;
+            case 'createNewDatabaseFromUI': {
+              const name = args[0] || 'Gurukul Books - Financial ERP Database';
+              resolve({
+                success: true,
+                spreadsheetId: `mock_${Date.now()}`,
+                spreadsheetName: name,
+                spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/mock/edit',
+                message: `Successfully created new database: ${name}`,
+              });
+              break;
+            }
+            case 'connectExistingSpreadsheet': {
+              const sheetInput = args[0] || '';
+              resolve({
+                success: true,
+                spreadsheetId: sheetInput.slice(0, 20) || 'custom_sheet_id',
+                spreadsheetName: 'Custom Connected Google Sheet',
+                spreadsheetUrl: sheetInput.startsWith('http') ? sheetInput : `https://docs.google.com/spreadsheets/d/${sheetInput}/edit`,
+                message: 'Successfully connected custom spreadsheet',
+              });
+              break;
+            }
             default:
               resolve({ success: true, message: 'Mock response' });
           }
