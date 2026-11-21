@@ -387,12 +387,38 @@ export const execGAS = (functionName, ...args) => {
             case 'getDatabaseInfo':
               resolve({
                 configured: true,
-                spreadsheetId: '1mockSpreadsheetIdForDev',
-                spreadsheetName: 'Gurukul Books - Financial ERP Database (Mock)',
-                spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/1mockSpreadsheetIdForDev/edit',
+                spreadsheetId: mockState.currentSheetId || '1mockGurukulDbId',
+                spreadsheetName: mockState.currentSheetName || 'Gurukul Books - Financial ERP Database',
+                spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${mockState.currentSheetId || '1mockGurukulDbId'}/edit`,
+                savedDatabases: mockState.savedDatabases || [
+                  { id: '1mockGurukulDbId', name: 'Gurukul Books - Financial ERP Database', url: 'https://docs.google.com/spreadsheets/d/1mockGurukulDbId/edit', lastUsed: new Date().toISOString() },
+                  { id: '1mockShikshaDbId', name: 'Shiksha Skills Institute - Database', url: 'https://docs.google.com/spreadsheets/d/1mockShikshaDbId/edit', lastUsed: new Date().toISOString() }
+                ],
                 message: 'Connected to mock database',
               });
               break;
+            case 'switchDatabase': {
+              const targetId = args[0];
+              const found = (mockState.savedDatabases || []).find((d) => d.id === targetId);
+              const targetName = found ? found.name : 'Switched Google Sheet';
+              mockState.currentSheetId = targetId;
+              mockState.currentSheetName = targetName;
+              resolve({
+                success: true,
+                spreadsheetId: targetId,
+                spreadsheetName: targetName,
+                spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${targetId}/edit`,
+                savedDatabases: mockState.savedDatabases || [],
+                message: `Switched active database to: ${targetName}`,
+              });
+              break;
+            }
+            case 'removeSavedDatabase': {
+              const removeId = args[0];
+              mockState.savedDatabases = (mockState.savedDatabases || []).filter((d) => d.id !== removeId);
+              resolve({ success: true, savedDatabases: mockState.savedDatabases });
+              break;
+            }
             case 'createNewDatabaseFromUI': {
               const name = args[0] || 'Gurukul Books - Financial ERP Database';
               resolve({

@@ -7,6 +7,9 @@ import {
   createNewDatabaseFromUI,
   connectExistingSpreadsheet,
   createDatabaseSpreadsheet,
+  getSavedDatabases,
+  switchDatabase,
+  removeSavedDatabase,
 } from './server/db.js';
 import { getInvoices, createInvoice, updateInvoiceStatus } from './server/invoice.js';
 import { getPayments, addPayment } from './server/payment.js';
@@ -70,6 +73,9 @@ export {
   createNewDatabaseFromUI,
   connectExistingSpreadsheet,
   createDatabaseSpreadsheet,
+  getSavedDatabases,
+  switchDatabase,
+  removeSavedDatabase,
   onSheetsHomepage,
   onCardInitDatabase,
   onCardAuditLedgers,

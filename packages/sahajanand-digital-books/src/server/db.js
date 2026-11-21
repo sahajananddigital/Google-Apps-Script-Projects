@@ -81,6 +81,11 @@ export const createDatabaseSpreadsheet = (name = 'Gurukul Books - Financial ERP 
     PropertiesService.getUserProperties().setProperty('SPREADSHEET_ID', newSs.getId());
   } catch (propErr) {}
 
+  // Remember in saved organizations list
+  try {
+    rememberDatabase(newSs.getId(), newSs.getName(), newSs.getUrl());
+  } catch (remErr) {}
+
   return newSs;
 };
 
@@ -99,7 +104,10 @@ export const getSpreadsheet = (autoCreate = true) => {
     const userPropId = PropertiesService.getUserProperties().getProperty('SPREADSHEET_ID');
     if (userPropId) {
       const ss = SpreadsheetApp.openById(userPropId);
-      if (ss) return ss;
+      if (ss) {
+        try { rememberDatabase(ss.getId(), ss.getName(), ss.getUrl()); } catch (remErr) {}
+        return ss;
+      }
     }
   } catch (e) {
     // Permission denied or deleted file -> clear stale ID
@@ -114,6 +122,7 @@ export const getSpreadsheet = (autoCreate = true) => {
     if (active) {
       try {
         PropertiesService.getUserProperties().setProperty('SPREADSHEET_ID', active.getId());
+        rememberDatabase(active.getId(), active.getName(), active.getUrl());
       } catch (err) {}
       return active;
     }
@@ -127,6 +136,7 @@ export const getSpreadsheet = (autoCreate = true) => {
       if (ss) {
         try {
           PropertiesService.getUserProperties().setProperty('SPREADSHEET_ID', scriptPropId);
+          rememberDatabase(ss.getId(), ss.getName(), ss.getUrl());
         } catch (saveErr) {}
         return ss;
       }
@@ -147,18 +157,112 @@ export const getSpreadsheet = (autoCreate = true) => {
   return null;
 };
 
+export const SAVED_DATABASES_KEY = 'SAVED_DATABASES';
+
 /**
- * Get current connected database spreadsheet info
+ * Get the list of saved spreadsheets from UserProperties
+ * @returns {Array<{id: string, name: string, url: string, lastUsed: string}>}
+ */
+export const getSavedDatabases = () => {
+  try {
+    const raw = PropertiesService.getUserProperties().getProperty(SAVED_DATABASES_KEY);
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+/**
+ * Remember a database in the user's saved list (up to 20 most recent)
+ */
+export const rememberDatabase = (id, name, url) => {
+  if (!id) return;
+  try {
+    const list = getSavedDatabases();
+    const cleanId = String(id).trim();
+    const filtered = list.filter((item) => item && item.id !== cleanId);
+    filtered.unshift({
+      id: cleanId,
+      name: name || 'Google Sheet Database',
+      url: url || `https://docs.google.com/spreadsheets/d/${cleanId}/edit`,
+      lastUsed: new Date().toISOString(),
+    });
+    const trimmed = filtered.slice(0, 20);
+    PropertiesService.getUserProperties().setProperty(SAVED_DATABASES_KEY, JSON.stringify(trimmed));
+  } catch (e) {
+    console.error('Error saving database list:', e);
+  }
+};
+
+/**
+ * Remove a database from the saved list
+ */
+export const removeSavedDatabase = (id) => {
+  if (!id) return { success: false, message: 'Spreadsheet ID required' };
+  try {
+    const cleanId = String(id).trim();
+    const list = getSavedDatabases();
+    const filtered = list.filter((item) => item && item.id !== cleanId);
+    PropertiesService.getUserProperties().setProperty(SAVED_DATABASES_KEY, JSON.stringify(filtered));
+    return { success: true, savedDatabases: filtered };
+  } catch (e) {
+    return { success: false, message: e.toString() };
+  }
+};
+
+/**
+ * Switch active database to one of the saved sheets by ID
+ */
+export const switchDatabase = (id) => {
+  if (!id) return { success: false, message: 'Spreadsheet ID required' };
+  try {
+    const cleanId = String(id).trim().replace(/^https:\/\/docs\.google\.com\/spreadsheets\/d\//, '').replace(/\/.*$/, '');
+    const ss = SpreadsheetApp.openById(cleanId);
+    if (!ss) {
+      return { success: false, message: `Could not open spreadsheet with ID: ${cleanId}` };
+    }
+
+    // Ensure all 11 required tables and headers exist
+    initDatabase(ss);
+
+    // Save as active in UserProperties
+    PropertiesService.getUserProperties().setProperty('SPREADSHEET_ID', cleanId);
+
+    // Update in saved list
+    rememberDatabase(cleanId, ss.getName(), ss.getUrl());
+
+    return {
+      success: true,
+      spreadsheetId: ss.getId(),
+      spreadsheetName: ss.getName(),
+      spreadsheetUrl: ss.getUrl(),
+      savedDatabases: getSavedDatabases(),
+      message: `Switched active database to: ${ss.getName()}`,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      message: `Failed to switch database: ${err.message || String(err)}`,
+    };
+  }
+};
+
+/**
+ * Get current connected database spreadsheet info and saved sheets list
  */
 export const getDatabaseInfo = () => {
   try {
     const ss = getSpreadsheet(true);
+    const savedDatabases = getSavedDatabases();
     if (!ss) {
       return {
         configured: false,
         spreadsheetId: null,
         spreadsheetName: null,
         spreadsheetUrl: null,
+        savedDatabases: savedDatabases,
         message: 'No spreadsheet connected',
       };
     }
@@ -167,6 +271,7 @@ export const getDatabaseInfo = () => {
       spreadsheetId: ss.getId(),
       spreadsheetName: ss.getName(),
       spreadsheetUrl: ss.getUrl(),
+      savedDatabases: savedDatabases,
       message: 'Connected successfully',
     };
   } catch (e) {
@@ -175,6 +280,7 @@ export const getDatabaseInfo = () => {
       spreadsheetId: null,
       spreadsheetName: null,
       spreadsheetUrl: null,
+      savedDatabases: getSavedDatabases(),
       message: e.toString(),
     };
   }
@@ -198,11 +304,17 @@ export const connectExistingSpreadsheet = (sheetIdOrUrl) => {
     // Save to UserProperties
     PropertiesService.getUserProperties().setProperty('SPREADSHEET_ID', cleanId);
 
+    // Remember in saved organizations list
+    try {
+      rememberDatabase(ss.getId(), ss.getName(), ss.getUrl());
+    } catch (remErr) {}
+
     return {
       success: true,
       spreadsheetId: ss.getId(),
       spreadsheetName: ss.getName(),
       spreadsheetUrl: ss.getUrl(),
+      savedDatabases: getSavedDatabases(),
       message: `Successfully connected to spreadsheet: ${ss.getName()}`,
     };
   } catch (err) {

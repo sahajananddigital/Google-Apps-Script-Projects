@@ -123,6 +123,44 @@ const SettingsManager = ({ settings = {}, onSettingsSaved, onDatabaseChanged, on
     }
   };
 
+  const handleSwitchDatabase = async (targetId) => {
+    if (!targetId || targetId === dbInfo.spreadsheetId) return;
+    setLoadingDb(true);
+    setDbMessage('');
+    try {
+      const res = await callGAS('switchDatabase', targetId);
+      if (res.success) {
+        setDbMessage(`✓ Switched to database: ${res.spreadsheetName}`);
+        await loadDatabaseInfo();
+        if (onDatabaseChanged) onDatabaseChanged();
+      } else {
+        alert(res.message || 'Failed to switch database');
+      }
+    } catch (e) {
+      alert('Error switching database: ' + (e.message || String(e)));
+    } finally {
+      setLoadingDb(false);
+    }
+  };
+
+  const handleRemoveSavedDatabase = async (targetId, e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    if (!window.confirm('Remove this sheet from your quick-switch list? (The spreadsheet file in Google Drive will NOT be deleted).')) {
+      return;
+    }
+    try {
+      const res = await callGAS('removeSavedDatabase', targetId);
+      if (res && res.success) {
+        setDbInfo((prev) => ({
+          ...prev,
+          savedDatabases: (prev.savedDatabases || []).filter((d) => d.id !== targetId),
+        }));
+      }
+    } catch (err) {
+      console.error('Error removing saved database:', err);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -278,6 +316,91 @@ const SettingsManager = ({ settings = {}, onSettingsSaved, onDatabaseChanged, on
         {dbMessage && (
           <div className="text-xs font-semibold text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-3 py-2 rounded-lg">
             {dbMessage}
+          </div>
+        )}
+
+        {/* Saved Sheets Quick Switcher */}
+        {dbInfo.savedDatabases && dbInfo.savedDatabases.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-white/10">
+            <div className="flex items-center justify-between text-xs text-slate-300 font-semibold">
+              <span className="flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>Switch Between Organizations & Saved Sheets:</span>
+              </span>
+              <span className="text-[11px] text-slate-400">
+                {dbInfo.savedDatabases.length} saved
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {dbInfo.savedDatabases.map((db) => {
+                const isActive = db.id === dbInfo.spreadsheetId;
+                return (
+                  <div
+                    key={db.id}
+                    className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-2 ${
+                      isActive
+                        ? 'bg-emerald-950/40 border-emerald-500/50 shadow-xs'
+                        : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm">{isActive ? '🟢' : '📁'}</span>
+                        <span className="font-bold text-xs text-white truncate block">
+                          {db.name || 'Google Sheet Database'}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono truncate mt-0.5">
+                        ID: {db.id}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      {isActive ? (
+                        <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 text-[10px] font-bold rounded-md border border-emerald-500/30">
+                          Active
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleSwitchDatabase(db.id)}
+                          disabled={loadingDb}
+                          className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold rounded-lg transition-all shadow-xs"
+                        >
+                          Switch
+                        </button>
+                      )}
+
+                      {db.url && (
+                        <a
+                          href={db.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Open in Google Sheets"
+                          className="p-1 hover:bg-white/10 text-slate-300 rounded-md transition-all"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      )}
+
+                      {!isActive && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleRemoveSavedDatabase(db.id, e)}
+                          title="Remove from saved list"
+                          className="p-1 hover:bg-red-500/20 text-slate-400 hover:text-red-300 rounded-md transition-all text-xs"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
