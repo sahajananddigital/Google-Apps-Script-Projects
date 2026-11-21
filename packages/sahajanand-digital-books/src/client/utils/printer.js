@@ -16,6 +16,27 @@ export const printIsolatedElement = (elementId, title = 'Invoice') => {
     return;
   }
 
+  // Clean filename: remove any .pdf extension if provided
+  const cleanTitle = String(title || 'Invoice').replace(/\.pdf$/i, '').trim();
+
+  // Temporarily update document.title on active window and top window
+  // Browsers (Chrome, Edge, Safari, Firefox) use this as default PDF file name!
+  const prevDocTitle = document.title;
+  let prevTopDocTitle = null;
+
+  try {
+    document.title = cleanTitle;
+  } catch (e) {}
+
+  try {
+    if (window.top && window.top !== window) {
+      prevTopDocTitle = window.top.document.title;
+      window.top.document.title = cleanTitle;
+    }
+  } catch (e) {
+    // Cross-origin iframe in GAS may block access, safely ignore
+  }
+
   // 1. Clean up any existing print iframe
   let iframe = document.getElementById('isolated-print-iframe');
   if (iframe) {
@@ -70,7 +91,7 @@ export const printIsolatedElement = (elementId, title = 'Invoice') => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${title}</title>
+      <title>${cleanTitle}</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
@@ -160,20 +181,35 @@ export const printIsolatedElement = (elementId, title = 'Invoice') => {
   // 5. Trigger print once fonts and images (UPI QR code) are fully loaded
   const triggerPrint = () => {
     try {
+      document.title = cleanTitle;
+      targetDoc.title = cleanTitle;
+      if (prevTopDocTitle !== null) {
+        try {
+          window.top.document.title = cleanTitle;
+        } catch (e) {}
+      }
       iframe.contentWindow.focus();
       iframe.contentWindow.print();
     } catch (err) {
       console.error('Error invoking print dialog:', err);
     }
 
-    // Clean up iframe after print dialog closes
+    // Clean up iframe and restore previous titles after print dialog closes
     setTimeout(() => {
+      try {
+        document.title = prevDocTitle;
+      } catch (e) {}
+      if (prevTopDocTitle !== null) {
+        try {
+          window.top.document.title = prevTopDocTitle;
+        } catch (e) {}
+      }
       try {
         if (iframe && iframe.parentNode) {
           iframe.parentNode.removeChild(iframe);
         }
       } catch (e) {}
-    }, 3000);
+    }, 4000);
   };
 
   const fontsReady = targetDoc.fonts && targetDoc.fonts.ready
@@ -218,4 +254,76 @@ export const printIsolatedElement = (elementId, title = 'Invoice') => {
       }
     }, 900);
   });
+};
+
+/**
+ * Direct 1-click download of self-contained receipt/invoice HTML file
+ * named exactly as the item id (e.g. SINV-1061.html)
+ */
+export const downloadStandaloneReceipt = (elementId, title = 'Invoice') => {
+  const element = document.getElementById(elementId);
+  if (!element) {
+    console.error(`Element with id "${elementId}" not found for download.`);
+    return;
+  }
+
+  const cleanTitle = String(title || 'Invoice').replace(/\.pdf$/i, '').replace(/\.html$/i, '').trim();
+
+  let parentHeadStyles = '';
+  document.querySelectorAll('link[rel="stylesheet"], link[rel="preconnect"], style').forEach((node) => {
+    parentHeadStyles += node.outerHTML + '\n';
+  });
+
+  let aggregatedRules = '';
+  try {
+    for (const sheet of document.styleSheets) {
+      try {
+        const rules = sheet.cssRules || sheet.rules;
+        if (rules) {
+          for (let i = 0; i < rules.length; i++) {
+            aggregatedRules += rules[i].cssText + '\n';
+          }
+        }
+      } catch (e) {}
+    }
+  } catch (err) {}
+
+  const contentHtml = element.outerHTML;
+
+  const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${cleanTitle}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  ${parentHeadStyles}
+  ${aggregatedRules ? `<style id="injected-bundle-rules">\n${aggregatedRules}\n</style>` : ''}
+  <style>
+    @page { size: A4 portrait; margin: 6mm 8mm; }
+    *, *::before, *::after { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    html, body { margin: 0; padding: 24px; background: #f8fafc; font-family: 'Inter', system-ui, sans-serif; }
+    #invoice-print-area { max-width: 820px; margin: 0 auto; background: #ffffff; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-radius: 16px; overflow: hidden; }
+    @media print {
+      body { background: #ffffff !important; padding: 0 !important; }
+      #invoice-print-area { box-shadow: none !important; border-radius: 0 !important; max-width: 100% !important; }
+    }
+  </style>
+</head>
+<body>
+  ${contentHtml}
+</body>
+</html>`;
+
+  const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${cleanTitle}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };

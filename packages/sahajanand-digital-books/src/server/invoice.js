@@ -9,16 +9,69 @@ export const getInvoices = () => {
 
   const itemsByInvoice = {};
   items.forEach((item) => {
-    if (!itemsByInvoice[item.InvoiceNo]) {
-      itemsByInvoice[item.InvoiceNo] = [];
+    const invNo = String(item.InvoiceNo || item.invoiceNo || '').trim();
+    if (invNo) {
+      if (!itemsByInvoice[invNo]) {
+        itemsByInvoice[invNo] = [];
+      }
+      const rawQty = item.Quantity !== undefined ? item.Quantity : item.quantity;
+      const qty = (rawQty !== '' && !isNaN(parseFloat(rawQty))) ? parseFloat(rawQty) : 1;
+      const rawRate = item.Rate !== undefined ? item.Rate : (item.rate !== undefined ? item.rate : 0);
+      const rate = parseFloat(rawRate) || 0;
+      const rawAmt = item.Amount !== undefined ? item.Amount : (item.amount !== undefined ? item.amount : (rate * qty));
+      const amount = parseFloat(rawAmt) || (rate * qty);
+
+      itemsByInvoice[invNo].push({
+        ...item,
+        item: item.item || item.ItemName || '',
+        itemName: item.itemName || item.ItemName || '',
+        ItemName: item.ItemName || item.item || item.itemName || '',
+        description: item.description || item.Description || '',
+        Description: item.Description || item.description || '',
+        hsnCode: String(item.hsnCode || item.HSN_SAC || '999293'),
+        HSN_SAC: String(item.HSN_SAC || item.hsnCode || '999293'),
+        quantity: qty,
+        Quantity: qty,
+        rate: rate,
+        Rate: rate,
+        amount: amount,
+        Amount: amount,
+      });
     }
-    itemsByInvoice[item.InvoiceNo].push(item);
   });
 
-  const fullInvoices = invoices.map((inv) => ({
-    ...inv,
-    items: itemsByInvoice[inv.InvoiceNo] || [],
-  }));
+  const fullInvoices = invoices.map((inv) => {
+    const invNo = String(inv.InvoiceNo || inv.name || inv.invoiceNo || '').trim();
+    const gTotal = parseFloat(inv.GrandTotal !== undefined ? inv.GrandTotal : (inv.grandTotal !== undefined ? inv.grandTotal : 0)) || 0;
+    const nTotal = parseFloat(inv.NetTotal !== undefined ? inv.NetTotal : (inv.netTotal !== undefined ? inv.netTotal : gTotal)) || 0;
+    const dAmount = parseFloat(inv.DiscountAmount !== undefined ? inv.DiscountAmount : (inv.discountAmount !== undefined ? inv.discountAmount : 0)) || 0;
+    const oAmount = parseFloat(inv.OutstandingAmount !== undefined ? inv.OutstandingAmount : (inv.outstandingAmount !== undefined ? inv.outstandingAmount : gTotal)) || 0;
+
+    return {
+      ...inv,
+      name: inv.name || inv.InvoiceNo || '',
+      invoiceNo: inv.invoiceNo || inv.InvoiceNo || '',
+      InvoiceNo: inv.InvoiceNo || inv.name || inv.invoiceNo || '',
+      date: inv.date || inv.Date || '',
+      Date: inv.Date || inv.date || '',
+      party: inv.party || inv.CustomerName || '',
+      customerName: inv.customerName || inv.CustomerName || '',
+      CustomerName: inv.CustomerName || inv.customerName || inv.party || '',
+      netTotal: nTotal,
+      NetTotal: nTotal,
+      discountAmount: dAmount,
+      DiscountAmount: dAmount,
+      grandTotal: gTotal,
+      GrandTotal: gTotal,
+      outstandingAmount: oAmount,
+      OutstandingAmount: oAmount,
+      status: inv.status || inv.Status || 'Submitted',
+      Status: inv.Status || inv.status || 'Submitted',
+      terms: inv.terms || inv.Terms || '',
+      Terms: inv.Terms || inv.terms || '',
+      items: itemsByInvoice[invNo] || [],
+    };
+  });
 
   // Reverse to show newest invoices first
   return JSON.stringify(fullInvoices.reverse());

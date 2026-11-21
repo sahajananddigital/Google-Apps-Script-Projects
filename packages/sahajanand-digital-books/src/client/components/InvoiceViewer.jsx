@@ -3,9 +3,9 @@ import TallyStyleInvoice from '../templates/TallyStyleInvoice';
 import ModernStyleInvoice from '../templates/ModernStyleInvoice';
 import EducationFeeReceipt from '../templates/EducationFeeReceipt';
 import EducationPartialFeeReceipt from '../templates/EducationPartialFeeReceipt';
-import { printIsolatedElement } from '../utils/printer';
+import { printIsolatedElement, downloadStandaloneReceipt } from '../utils/printer';
 
-const InvoiceViewer = ({ invoice, customer, settings = {}, onClose, onOpenCustomizer }) => {
+const InvoiceViewer = ({ invoice, customer, settings = {}, autoPrint = false, onClose, onOpenCustomizer }) => {
   // Normalize default template key
   const getDefaultTemplate = () => {
     const def = settings?.defaultPrintTemplate;
@@ -29,9 +29,26 @@ const InvoiceViewer = ({ invoice, customer, settings = {}, onClose, onOpenCustom
 
   if (!invoice) return null;
 
+  const invoiceNo = String(
+    invoice.InvoiceNo || invoice.invoiceNo || invoice.name || 'SINV-XXXX'
+  ).trim();
+
   const handlePrint = () => {
-    printIsolatedElement('invoice-print-area', `${invoice.name || invoice.InvoiceNo || 'Fee_Receipt'}`);
+    printIsolatedElement('invoice-print-area', invoiceNo);
   };
+
+  const handleDownloadHtml = () => {
+    downloadStandaloneReceipt('invoice-print-area', invoiceNo);
+  };
+
+  useEffect(() => {
+    if (autoPrint) {
+      const timer = setTimeout(() => {
+        handlePrint();
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPrint]);
 
   return (
     <div
@@ -108,11 +125,23 @@ const InvoiceViewer = ({ invoice, customer, settings = {}, onClose, onOpenCustom
           <button
             onClick={handlePrint}
             className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all shadow-sm shadow-blue-200"
+            title={`Download or Print as ${invoiceNo}.pdf`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            Print / Save PDF
+            Download {invoiceNo}.pdf
+          </button>
+
+          <button
+            onClick={handleDownloadHtml}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all"
+            title={`Download standalone offline copy: ${invoiceNo}.html`}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            .HTML
           </button>
 
           <button

@@ -1,5 +1,5 @@
-import { formatINR, formatDate, numberToWordsINR, amountToWords } from '../utils/formatters';
-import { toSafeArray } from '../utils/safeArray';
+import { formatCurrency, formatDate, amountToWords } from '../utils/formatters';
+import { normalizeInvoiceItems } from '../utils/invoiceNormalizer';
 
 /**
  * Educational Institute Partial Fee / Installment Receipt Template
@@ -13,29 +13,28 @@ import { toSafeArray } from '../utils/safeArray';
 const EducationPartialFeeReceipt = ({ invoice, customer, settings = {} }) => {
   if (!invoice) return null;
 
-  const invoiceNo = invoice.name || invoice.InvoiceNo || 'PART-REC-XXXX';
+  const invoiceNo = invoice.name || invoice.InvoiceNo || invoice.invoiceNo || 'PART-REC-XXXX';
   const invoiceDate = formatDate(invoice.date || invoice.Date);
-  const studentName = invoice.party || invoice.CustomerName || customer?.name || 'Student';
-  const totalCourseFee = parseFloat(invoice.grandTotal || invoice.GrandTotal || 0);
-  const remainingDue = parseFloat(
-    invoice.outstandingAmount !== undefined ? invoice.outstandingAmount : totalCourseFee * 0.5
-  );
+  const studentName = invoice.party || invoice.CustomerName || invoice.customerName || customer?.name || 'Student';
+  const totalCourseFee = parseFloat(
+    invoice.grandTotal !== undefined
+      ? invoice.grandTotal
+      : invoice.GrandTotal !== undefined
+      ? invoice.GrandTotal
+      : 0
+  ) || 0;
+  const rawOutstanding =
+    invoice.outstandingAmount !== undefined
+      ? invoice.outstandingAmount
+      : invoice.OutstandingAmount !== undefined
+      ? invoice.OutstandingAmount
+      : undefined;
+  const remainingDue = rawOutstanding !== undefined ? parseFloat(rawOutstanding) : totalCourseFee * 0.5;
   // Amount paid on this voucher/receipt
   const paidToday = Math.max(0, totalCourseFee - remainingDue);
   const isFullyPaid = remainingDue <= 0;
 
-  const rawItems = toSafeArray(invoice.items);
-  const items = rawItems.length > 0 ? rawItems : [
-    {
-      item: invoice.remarks || invoice.party || invoice.CustomerName || 'Diploma Program / Course Tuition',
-      description: invoice.description || invoice.Description || 'Course Fee Installment Payment',
-      hsnCode: invoice.hsnCode || invoice.HSN_SAC || '999293',
-      quantity: 1,
-      duration: 'Installment 1',
-      rate: totalCourseFee,
-      amount: totalCourseFee,
-    }
-  ];
+  const items = normalizeInvoiceItems(invoice.items, invoice);
 
   const companyName = settings.companyName || 'Educational Institute';
   const address = settings.address || customer?.addressLine1 || '';
@@ -47,7 +46,7 @@ const EducationPartialFeeReceipt = ({ invoice, customer, settings = {} }) => {
 
   // UPI configuration for paying remaining balance
   const upiPayeeName = settings.upiPayeeName || settings.fullname || settings.companyName || '';
-  const upiId = settings.primaryUpiId || '';
+  const upiId = settings.primaryUpiId || settings.upiId || '';
   const showQr = settings.showQrCode !== false && Boolean(upiId);
   const remainingDueClean = (remainingDue > 0 ? remainingDue : totalCourseFee).toString().replace(/[^\d.]/g, '');
   const upiQrUrl = showQr
@@ -64,7 +63,7 @@ const EducationPartialFeeReceipt = ({ invoice, customer, settings = {} }) => {
     customer?.postalCode
   ].filter(Boolean).join(', ');
 
-  const showHSN = items.some((it) => Boolean(it.hsnCode || it.hsn || it.HSNCode));
+  const showHSN = items.some((it) => Boolean(it.HSN_SAC || it.hsnCode || it.hsn || it.HSNCode));
 
   return (
     <main
@@ -152,13 +151,13 @@ const EducationPartialFeeReceipt = ({ invoice, customer, settings = {} }) => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200">
             <div className="p-3 bg-white rounded-xl border border-slate-200">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">1. Total Program Fee</span>
-              <p className="text-lg font-black font-mono text-slate-800 mt-0.5">{formatINR(totalCourseFee)}</p>
+              <p className="text-lg font-black font-mono text-slate-800 mt-0.5">{formatCurrency(totalCourseFee, settings?.currency)}</p>
               <span className="text-[10px] text-slate-400">Total course commitment</span>
             </div>
 
             <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">2. Paid Today / Received</span>
-              <p className="text-lg font-black font-mono text-emerald-700 mt-0.5">{formatINR(paidToday)}</p>
+              <p className="text-lg font-black font-mono text-emerald-700 mt-0.5">{formatCurrency(paidToday, settings?.currency)}</p>
               <span className="text-[10px] text-emerald-600 font-semibold">✓ Acknowledged on this receipt</span>
             </div>
 
@@ -167,7 +166,7 @@ const EducationPartialFeeReceipt = ({ invoice, customer, settings = {} }) => {
                 3. Remaining Balance Due
               </span>
               <p className={`text-lg font-black font-mono mt-0.5 ${isFullyPaid ? 'text-slate-800' : 'text-rose-700'}`}>
-                {formatINR(remainingDue)}
+                {formatCurrency(remainingDue, settings?.currency)}
               </p>
               <span className={`text-[10px] font-semibold ${isFullyPaid ? 'text-slate-500' : 'text-rose-600'}`}>
                 {isFullyPaid ? 'Zero balance remaining' : 'Pending next installment'}
@@ -188,11 +187,11 @@ const EducationPartialFeeReceipt = ({ invoice, customer, settings = {} }) => {
 
           <div className="divide-y divide-slate-100">
             {items.map((row, idx) => {
-              const itemName = row.item || row.itemName || row.name || 'Course Fee';
-              const hsn = row.hsnCode || row.hsn || row.HSNCode || '999293';
-              const duration = row.duration || row.description || 'Program Installment';
-              const rate = parseFloat(row.rate || row.amount || 0);
-              const amount = parseFloat(row.amount || rate);
+              const itemName = row.ItemName || row.item || row.itemName || row.name || 'Course Fee';
+              const hsn = row.HSN_SAC || row.hsnCode || row.hsn || row.HSNCode || '999293';
+              const duration = row.Duration || row.duration || (row.description ? row.description : (row.unit ? `${row.quantity} ${row.unit}` : 'Program Installment'));
+              const rate = parseFloat(row.Rate !== undefined ? row.Rate : (row.rate !== undefined ? row.rate : 0)) || 0;
+              const amount = parseFloat(row.Amount !== undefined ? row.Amount : (row.amount !== undefined ? row.amount : (rate * row.quantity))) || (rate * row.quantity);
 
               return (
                 <div key={idx} className="flex py-3 text-slate-800 items-baseline">
@@ -208,8 +207,8 @@ const EducationPartialFeeReceipt = ({ invoice, customer, settings = {} }) => {
                   <div className={showHSN ? 'w-2/12 text-right text-xs text-slate-600' : 'w-3/12 text-right text-xs text-slate-600'}>
                     {duration}
                   </div>
-                  <div className="w-2/12 text-right font-mono text-slate-700">{formatINR(rate)}</div>
-                  <div className="w-3/12 text-right font-mono font-bold text-slate-900">{formatINR(amount)}</div>
+                  <div className="w-2/12 text-right font-mono text-slate-700">{formatCurrency(rate, settings?.currency)}</div>
+                  <div className="w-3/12 text-right font-mono font-bold text-slate-900">{formatCurrency(amount, settings?.currency)}</div>
                 </div>
               );
             })}
@@ -237,6 +236,7 @@ const EducationPartialFeeReceipt = ({ invoice, customer, settings = {} }) => {
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Installment Policy & Notes</h3>
             <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed">
               {invoice.terms ||
+                invoice.Terms ||
                 settings.defaultTerms ||
                 '1. This receipt acknowledges partial receipt of course fees as per agreed installment plan.\n2. The remaining outstanding balance must be cleared on or before the due date to ensure uninterrupted classes and lab access.\n3. Fees once paid are non-refundable and non-transferable.'}
             </p>

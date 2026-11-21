@@ -1,5 +1,5 @@
-import { formatINR, formatDate, numberToWordsINR, amountToWords } from '../utils/formatters';
-import { toSafeArray } from '../utils/safeArray';
+import { formatCurrency, formatDate, amountToWords } from '../utils/formatters';
+import { normalizeInvoiceItems } from '../utils/invoiceNormalizer';
 
 /**
  * Educational Institute Fee Receipt Template
@@ -12,25 +12,32 @@ import { toSafeArray } from '../utils/safeArray';
 const EducationFeeReceipt = ({ invoice, customer, settings = {} }) => {
   if (!invoice) return null;
 
-  const invoiceNo = invoice.name || invoice.InvoiceNo || 'REC-XXXX';
+  const invoiceNo = invoice.name || invoice.InvoiceNo || invoice.invoiceNo || 'REC-XXXX';
   const invoiceDate = formatDate(invoice.date || invoice.Date);
-  const studentName = invoice.party || invoice.CustomerName || customer?.name || 'Student';
-  const grandTotal = parseFloat(invoice.grandTotal || invoice.GrandTotal || 0);
-  const netTotal = parseFloat(invoice.netTotal || invoice.NetTotal || grandTotal);
-  const discountAmount = parseFloat(invoice.discountAmount || invoice.DiscountAmount || 0);
+  const studentName = invoice.party || invoice.CustomerName || invoice.customerName || customer?.name || 'Student';
+  const grandTotal = parseFloat(
+    invoice.grandTotal !== undefined
+      ? invoice.grandTotal
+      : invoice.GrandTotal !== undefined
+      ? invoice.GrandTotal
+      : 0
+  ) || 0;
+  const netTotal = parseFloat(
+    invoice.netTotal !== undefined
+      ? invoice.netTotal
+      : invoice.NetTotal !== undefined
+      ? invoice.NetTotal
+      : grandTotal
+  ) || 0;
+  const discountAmount = parseFloat(
+    invoice.discountAmount !== undefined
+      ? invoice.discountAmount
+      : invoice.DiscountAmount !== undefined
+      ? invoice.DiscountAmount
+      : 0
+  ) || 0;
 
-  const rawItems = toSafeArray(invoice.items);
-  const items = rawItems.length > 0 ? rawItems : [
-    {
-      item: invoice.remarks || invoice.party || invoice.CustomerName || 'Annual Program / Course Tuition Fees',
-      description: invoice.description || invoice.Description || '',
-      hsnCode: invoice.hsnCode || invoice.HSN_SAC || '999293',
-      quantity: 1,
-      duration: '1 Term / Year',
-      rate: grandTotal,
-      amount: grandTotal,
-    }
-  ];
+  const items = normalizeInvoiceItems(invoice.items, invoice);
 
   const companyName = settings.companyName || 'Educational Institute';
   const address = settings.address || customer?.addressLine1 || '';
@@ -42,7 +49,7 @@ const EducationFeeReceipt = ({ invoice, customer, settings = {} }) => {
 
   // UPI configuration
   const upiPayeeName = settings.upiPayeeName || settings.fullname || settings.companyName || '';
-  const upiId = settings.primaryUpiId || '';
+  const upiId = settings.primaryUpiId || settings.upiId || '';
   const showQr = settings.showQrCode !== false && Boolean(upiId);
   const grandTotalClean = grandTotal.toString().replace(/[^\d.]/g, '');
   const upiQrUrl = showQr
@@ -59,7 +66,7 @@ const EducationFeeReceipt = ({ invoice, customer, settings = {} }) => {
     customer?.postalCode
   ].filter(Boolean).join(', ');
 
-  const showHSN = items.some((it) => Boolean(it.hsnCode || it.hsn || it.HSNCode));
+  const showHSN = items.some((it) => Boolean(it.HSN_SAC || it.hsnCode || it.hsn || it.HSNCode));
 
   return (
     <main
@@ -162,11 +169,11 @@ const EducationFeeReceipt = ({ invoice, customer, settings = {} }) => {
           {/* Table Body */}
           <div className="divide-y divide-slate-100">
             {items.map((row, idx) => {
-              const itemName = row.item || row.itemName || row.name || 'Program Fees';
-              const hsn = row.hsnCode || row.hsn || row.HSNCode || '999293';
-              const duration = row.duration || (row.quantity ? `${row.quantity} ${row.unit || 'Unit'}` : '1 Course');
-              const rate = parseFloat(row.rate || row.amount || 0);
-              const amount = parseFloat(row.amount || rate * (parseFloat(row.quantity) || 1));
+              const itemName = row.ItemName || row.item || row.itemName || row.name || 'Program Fees';
+              const hsn = row.HSN_SAC || row.hsnCode || row.hsn || row.HSNCode || '999293';
+              const duration = row.Duration || row.duration || (row.unit ? `${row.quantity} ${row.unit}` : (row.quantity > 1 ? `${row.quantity} Courses` : '1 Course'));
+              const rate = parseFloat(row.Rate !== undefined ? row.Rate : (row.rate !== undefined ? row.rate : 0)) || 0;
+              const amount = parseFloat(row.Amount !== undefined ? row.Amount : (row.amount !== undefined ? row.amount : (rate * row.quantity))) || (rate * row.quantity);
 
               return (
                 <div key={idx} className="flex py-3 text-slate-800 items-baseline">
@@ -182,8 +189,8 @@ const EducationFeeReceipt = ({ invoice, customer, settings = {} }) => {
                   <div className={showHSN ? 'w-2/12 text-right text-xs text-slate-600' : 'w-3/12 text-right text-xs text-slate-600'}>
                     {duration}
                   </div>
-                  <div className="w-2/12 text-right font-mono text-slate-700">{formatINR(rate)}</div>
-                  <div className="w-3/12 text-right font-mono font-bold text-slate-900">{formatINR(amount)}</div>
+                  <div className="w-2/12 text-right font-mono text-slate-700">{formatCurrency(rate, settings?.currency)}</div>
+                  <div className="w-3/12 text-right font-mono font-bold text-slate-900">{formatCurrency(amount, settings?.currency)}</div>
                 </div>
               );
             })}
@@ -198,14 +205,14 @@ const EducationFeeReceipt = ({ invoice, customer, settings = {} }) => {
           {/* Subtotal */}
           <div className="text-right py-3 px-4">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">Subtotal</h3>
-            <p className="text-base font-bold font-mono text-slate-900 mt-0.5">{formatINR(netTotal)}</p>
+            <p className="text-base font-bold font-mono text-slate-900 mt-0.5">{formatCurrency(netTotal, settings?.currency)}</p>
           </div>
 
           {/* Discount if present */}
           {discountAmount > 0 && (
             <div className="text-right py-3 px-4">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-600">Discount</h3>
-              <p className="text-base font-bold font-mono text-emerald-600 mt-0.5">- {formatINR(discountAmount)}</p>
+              <p className="text-base font-bold font-mono text-emerald-600 mt-0.5">- {formatCurrency(discountAmount, settings?.currency)}</p>
             </div>
           )}
 
@@ -215,7 +222,7 @@ const EducationFeeReceipt = ({ invoice, customer, settings = {} }) => {
             style={{ backgroundColor: brandColor }}
           >
             <h3 className="text-xs font-black uppercase tracking-wider text-blue-100">Grand Total</h3>
-            <p className="text-2xl font-black font-mono mt-0.5">{formatINR(grandTotal)}</p>
+            <p className="text-2xl font-black font-mono mt-0.5">{formatCurrency(grandTotal, settings?.currency)}</p>
           </div>
         </section>
 
@@ -225,7 +232,7 @@ const EducationFeeReceipt = ({ invoice, customer, settings = {} }) => {
             <strong className="text-slate-800">Amount in Words:</strong> {amountToWords(grandTotal, settings?.currency)}
           </span>
           <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">
-            Status: {invoice.status || 'Received'}
+            Status: {invoice.status || invoice.Status || 'Received'}
           </span>
         </div>
 
@@ -236,6 +243,7 @@ const EducationFeeReceipt = ({ invoice, customer, settings = {} }) => {
             <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Notes & Fee Policy</h3>
             <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed">
               {invoice.terms ||
+                invoice.Terms ||
                 settings.defaultTerms ||
                 '1. Fees once paid are non-refundable and non-transferable under any circumstances.\n2. Please retain this receipt for student ID and examination clearance.\n3. Mention the receipt number for any queries or certificate issuance.'}
             </p>
